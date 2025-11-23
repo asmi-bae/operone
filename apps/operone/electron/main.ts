@@ -35,7 +35,7 @@ function createWindow() {
 function registerProtocolHandler() {
   if (process.defaultApp) {
     if (process.argv.length >= 2) {
-      app.setAsDefaultProtocolClient('operone', process.execPath, [path.resolve(process.argv[1])])
+      app.setAsDefaultProtocolClient('operone', process.execPath, [path.resolve(process.argv[1] as string)])
     }
   } else {
     app.setAsDefaultProtocolClient('operone')
