@@ -1,6 +1,8 @@
 {
     "name": "operone",
     "version": "0.1.0",
+    "description": "Operone - The unicercal ai integrated desktop application",
+    "author": "Operone Team",
     "type": "module",
     "private": true,
     "main": "dist-electron/main.js",
