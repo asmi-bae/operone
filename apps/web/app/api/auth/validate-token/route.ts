@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { tokenStore } from '@/app/auth-success/page'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -11,43 +10,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 })
     }
 
-    // Get token data
-    const tokenData = tokenStore.get(token)
+    // Find token in DB
+    const tokenData = await prisma.desktopAuthToken.findUnique({
+      where: { token },
+      include: { user: true }
+    })
 
     if (!tokenData) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
     }
 
-    // Check if token is expired
-    if (tokenData.expiresAt < Date.now()) {
-      tokenStore.delete(token)
+    // Check expiry
+    if (tokenData.expires < new Date()) {
+      await prisma.desktopAuthToken.delete({ where: { id: tokenData.id } })
       return NextResponse.json({ error: 'Token has expired' }, { status: 401 })
     }
 
-    // Get user from session (the token was created during an authenticated session)
-    const session = await auth()
-    
-    if (!session || !session.user) {
-      tokenStore.delete(token)
-      return NextResponse.json({ error: 'Session not found' }, { status: 401 })
-    }
-
-    // Verify the token belongs to this user
-    if (session.user.id !== tokenData.userId) {
-      tokenStore.delete(token)
-      return NextResponse.json({ error: 'Token mismatch' }, { status: 401 })
-    }
-
     // Delete token (single-use)
-    tokenStore.delete(token)
+    await prisma.desktopAuthToken.delete({ where: { id: tokenData.id } })
 
     // Return user data
     return NextResponse.json({
       user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        image: session.user.image,
+        id: tokenData.user.id,
+        email: tokenData.user.email,
+        name: tokenData.user.name,
+        image: tokenData.user.image,
       },
     })
   } catch (error) {

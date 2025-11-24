@@ -50,7 +50,6 @@ export async function sendLoginNotification(details: LoginDetails) {
       subject,
       html,
     })
-    console.log(`Login notification sent to ${email}`)
   } catch (error) {
     console.error('Failed to send login notification:', error)
   }

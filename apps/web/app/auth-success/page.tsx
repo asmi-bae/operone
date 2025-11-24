@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, 
 import { cn } from '@/lib/utils'
 import { CheckCircle2 } from 'lucide-react'
 
-// In-memory token store (shared with validate-token API)
-const tokenStore = new Map<string, { userId: string; expiresAt: number }>()
+import { prisma } from '@/lib/prisma'
 
 function generateToken(): string {
     const array = new Uint8Array(32)
@@ -15,23 +14,20 @@ function generateToken(): string {
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-function storeTokenForUser(userId: string): string {
+async function storeTokenForUser(userId: string): Promise<string> {
     const token = generateToken()
-    const expiresAt = Date.now() + 5 * 60 * 1000 // 5 minutes
-    tokenStore.set(token, { userId, expiresAt })
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
-    // Clean up expired tokens
-    for (const [key, value] of tokenStore.entries()) {
-        if (value.expiresAt < Date.now()) {
-            tokenStore.delete(key)
+    await prisma.desktopAuthToken.create({
+        data: {
+            token,
+            userId,
+            expires: expiresAt
         }
-    }
+    })
 
     return token
 }
-
-// Export token store for use in API route
-export { tokenStore }
 
 export default async function AuthSuccessPage(props: {
     searchParams: Promise<{ token?: string; from?: string }>
@@ -47,7 +43,7 @@ export default async function AuthSuccessPage(props: {
     // If coming from desktop login or has token
     if (token || from === 'desktop') {
         // Generate a secure token for the desktop app
-        const token = storeTokenForUser(session.user.id!)
+        const token = await storeTokenForUser(session.user.id!)
         const deepLink = `operone://auth?token=${token}`
 
         return (

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 
 interface User {
     id: string
@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const validatingRef = useRef(false)
 
     // Check authentication status on mount
     useEffect(() => {
@@ -29,13 +30,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Listen for auth success events from deep links
         const handleAuthSuccess = (_event: any, data: { token: string }) => {
-            console.log('Auth success received:', data)
+            // Prevent duplicate validation calls
+            if (validatingRef.current) {
+                return
+            }
             validateAndSetUser(data.token)
         }
 
+        // Store the cleanup function returned by onAuthSuccess
+        let cleanup: (() => void) | undefined
+
         // Note: This will be implemented in preload.ts
         if (window.electronAPI?.onAuthSuccess) {
-            window.electronAPI.onAuthSuccess(handleAuthSuccess)
+            cleanup = window.electronAPI.onAuthSuccess(handleAuthSuccess)
+        }
+
+        // Cleanup function to prevent duplicate listeners
+        return () => {
+            // Remove the event listener
+            if (cleanup) {
+                cleanup()
+            }
+            // Reset validation state on cleanup
+            validatingRef.current = false
         }
     }, [])
 
@@ -63,6 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const validateAndSetUser = async (token: string) => {
+        if (validatingRef.current) {
+            return
+        }
+
+        validatingRef.current = true
         setIsLoading(true)
         setError(null)
 
@@ -74,8 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify({ token }),
             })
 
+
             if (!response.ok) {
-                throw new Error('Token validation failed')
+                const errorData = await response.json()
+                console.error('Validation failed:', errorData)
+                throw new Error(errorData.error || 'Token validation failed')
             }
 
             const { user: userData } = await response.json()
@@ -90,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError(err instanceof Error ? err.message : 'Authentication failed')
         } finally {
             setIsLoading(false)
+            validatingRef.current = false
         }
     }
 

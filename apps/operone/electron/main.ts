@@ -46,9 +46,7 @@ async function initializeAIService() {
     sendMessage: async (message: string) => {
       try {
         // Simple Think-Act loop
-        console.log('User message:', message)
         const thought = await agent.think(message)
-        console.log('Agent thought:', thought)
         
         if (thought.includes('FINAL ANSWER:')) {
           const answer = thought.split('FINAL ANSWER:')[1];
@@ -65,8 +63,7 @@ async function initializeAIService() {
         return `Error: ${error.message}`
       }
     },
-    ingestDocument: async (data: any) => {
-      console.log('Ingesting document:', data.id)
+    ingestDocument: async (_data: any) => {
     },
     queryMemory: async (_query: string) => {
       return []
@@ -132,6 +129,8 @@ function handleDeepLink(url: string) {
       store.set('authToken', token)
       // Notify renderer process
       mainWindow.webContents.send('auth-success', { token })
+    } else {
+        console.error('Token missing or mainWindow not available', { token, mainWindow: !!mainWindow })
     }
   }
 }
@@ -198,17 +197,37 @@ function setupIPCHandlers() {
   })
 }
 
-app.whenReady().then(() => {
-  registerProtocolHandler()
-  setupIPCHandlers()
-  createWindow()
+const gotTheLock = app.requestSingleInstanceLock()
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine, _workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+
+    // Handle deep link on Windows/Linux
+    const url = commandLine.find(arg => arg.startsWith('operone://'))
+    if (url) {
+      handleDeepLink(url)
     }
   })
-})
+
+  app.whenReady().then(() => {
+    registerProtocolHandler()
+    setupIPCHandlers()
+    createWindow()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      }
+    })
+  })
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

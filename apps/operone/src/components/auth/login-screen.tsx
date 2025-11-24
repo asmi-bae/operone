@@ -1,7 +1,7 @@
 import { useAuth } from '../../contexts/auth-context'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Shield } from 'lucide-react'
 import faviconUrl from '../../assets/favicon.ico'
 
 export function LoginScreen() {
@@ -12,11 +12,11 @@ export function LoginScreen() {
             <Card className="w-full max-w-sm mx-4 bg-transparent border-none shadow-none">
                 <CardContent className="flex flex-col items-center space-y-6 pt-6">
                     {/* App Icon */}
-                    <img
-                        src={faviconUrl}
-                        alt="Operone"
-                        className="w-20 h-20"
-                    />
+                        <img
+                            src={faviconUrl}
+                            alt="Operone"
+                            className="w-20 h-20"
+                        />
 
                     {/* App Name */}
                     <h1 className="text-3xl font-bold">Operone</h1>
@@ -27,6 +27,7 @@ export function LoginScreen() {
                         disabled={isLoading}
                         size="lg"
                         className="w-full"
+                        variant="default"
                     >
                         {isLoading ? (
                             <>
@@ -34,9 +35,21 @@ export function LoginScreen() {
                                 Opening browser...
                             </>
                         ) : (
-                            'Login'
+                            'Login with Operone'
                         )}
                     </Button>
+                    
+                    {/* Loading State Message */}
+                    {isLoading && (
+                        <div className="text-center space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                                Opening your browser...
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                You'll be redirected back automatically after login
+                            </p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
