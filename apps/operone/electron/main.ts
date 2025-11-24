@@ -13,10 +13,12 @@ let mainWindow: BrowserWindow | null = null
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
-// Suppress harmless warnings
+// Suppress harmless warnings and prevent GPU crashes
 app.commandLine.appendSwitch('disable-gpu-sandbox')
 app.commandLine.appendSwitch('disable-software-rasterizer')
 app.commandLine.appendSwitch('disable-dev-shm-usage')
+app.commandLine.appendSwitch('disable-gpu')
+app.commandLine.appendSwitch('disable-gpu-compositing')
 
 import { OSAgent } from '@repo/ai-engine'
 import { openai } from '@ai-sdk/openai'
@@ -83,7 +85,7 @@ function createWindow() {
       width: 1200,
       height: 800,
       webPreferences: {
-        preload: path.join(__dirname, 'preload.cjs'),
+        preload: path.join(__dirname, '../electron/preload.cjs'),
         nodeIntegration: false,
         contextIsolation: true,
       },

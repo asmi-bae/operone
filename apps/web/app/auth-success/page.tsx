@@ -47,11 +47,11 @@ export default async function AuthSuccessPage({
         const deepLink = `operone://auth?token=${token}`
 
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-                <div className="text-center space-y-6 p-8">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto">
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center space-y-6 p-8 max-w-md">
+                    <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto">
                         <svg
-                            className="w-10 h-10 text-white"
+                            className="w-10 h-10 text-primary-foreground"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -64,15 +64,15 @@ export default async function AuthSuccessPage({
                             />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-bold text-white">Authentication Successful!</h1>
-                    <p className="text-gray-300">Redirecting to Operone Desktop App...</p>
+                    <h1 className="text-3xl font-bold">Authentication Successful!</h1>
+                    <p className="text-muted-foreground">Redirecting to Operone Desktop App...</p>
                     <a
                         href={deepLink}
-                        className="inline-block px-6 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition"
+                        className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition"
                     >
                         Open Operone Desktop
                     </a>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         If the app doesn&apos;t open automatically, click the button above
                     </p>
                     <script

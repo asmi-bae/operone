@@ -1,12 +1,16 @@
-'use client'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import LoginPageComponent from '@/components/login-page'
 
-import { Suspense } from 'react'
-import LoginPage from './login-page'
+export default async function LoginPageWrapper() {
+  const session = await auth()
 
-export default function LoginPageWrapper() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div>Loading...</div></div>}>
-      <LoginPage />
-    </Suspense>
-  )
+  // If user is already logged in and coming from desktop, redirect to auth-success
+  if (session?.user) {
+    // Check if this is a desktop login request
+    // We'll handle this via URL params in the client component
+    return <LoginPageComponent />
+  }
+
+  return <LoginPageComponent />
 }

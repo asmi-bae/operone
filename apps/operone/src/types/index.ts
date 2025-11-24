@@ -1,4 +1,4 @@
-export type View = 'chat' | 'memory' | 'settings'
+export type View = 'chat' | 'memory' | 'settings' | 'ui-demo'
 
 export interface User {
   id: string

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { PasskeyIcon } from '@/components/icons/passkey'
 
 export default function LoginPage() {
@@ -17,9 +17,17 @@ export default function LoginPage() {
     const [isGithubLoading, setIsGithubLoading] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { data: session, status } = useSession()
 
     const isFromDesktop = searchParams.get('from') === 'desktop'
     const callbackUrl = searchParams.get('callbackUrl') || (isFromDesktop ? '/auth-success?from=desktop' : '/dashboard')
+
+    // Auto-redirect if already logged in and coming from desktop
+    useEffect(() => {
+        if (status === 'authenticated' && session?.user && isFromDesktop) {
+            router.push('/auth-success?from=desktop')
+        }
+    }, [status, session, isFromDesktop, router])
 
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true)

@@ -5,6 +5,7 @@ import { SettingsPanel } from './features/settings/settings-panel'
 import { MemoryInspector } from './features/memory/memory-inspector'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LoginScreen } from './components/auth/login-screen'
+import { UIDemo } from './components/UIDemo'
 import faviconUrl from './assets/favicon.ico'
 import type { View } from './types'
 import './App.css'
@@ -39,6 +40,7 @@ function AppContent() {
             {activeView === 'chat' && <ChatInterface />}
             {activeView === 'memory' && <MemoryInspector />}
             {activeView === 'settings' && <SettingsPanel />}
+            {activeView === 'ui-demo' && <UIDemo />}
         </Layout>
     )
 }
