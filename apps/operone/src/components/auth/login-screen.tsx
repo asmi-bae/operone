@@ -72,7 +72,7 @@ export function LoginScreen() {
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Opening browser...
+                                Checking session...
                             </>
                         ) : (
                             'Login with Operone'
@@ -83,10 +83,10 @@ export function LoginScreen() {
                     {isLoading && (
                         <div className="text-center space-y-2">
                             <p className="text-sm text-muted-foreground">
-                                Opening your browser...
+                                Checking for existing session...
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                You'll be redirected back automatically after login
+                                You'll be redirected automatically after login
                             </p>
                         </div>
                     )}
@@ -99,12 +99,7 @@ export function LoginScreen() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[480px] max-h-[80vh] border-none shadow-none">
-                            <DialogHeader>
-                                <DialogTitle>Enter Login Token</DialogTitle>
-                                <DialogDescription>
-                                    If the automatic redirect didn't work, copy the token from the browser and paste it here.
-                                </DialogDescription>
-                            </DialogHeader>
+                            <DialogHeader className="gap-1"><DialogTitle className="mb-1">Enter Login Token</DialogTitle><DialogDescription>Copy token & paste</DialogDescription></DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="token">Token</Label>
@@ -117,27 +112,41 @@ export function LoginScreen() {
                                     />
                                 </div>
                                 {isManualLoginLoading ? (
-                                    <div className="py-2">
-                                        <Progress value={progress} className="w-full h-2" />
+                                    <div className="py-2 flex justify-center">
+                                        <Progress value={progress} className="w-full h-2 max-w-xs" />
                                     </div>
                                 ) : (
-                                    <Button onClick={handleManualLogin} disabled={!token}>
-                                        Login with Token
-                                    </Button>
+                                    <div className="flex justify-center">
+                                        <Button onClick={handleManualLogin} disabled={!token} className="w-full max-w-xs">
+                                            Login with Token
+                                        </Button>
+                                    </div>
                                 )}
+                            </div>
+                            <div className="pt-4 text-center">
+                                <small>Don't know what to do?&nbsp;</small>
+                                <a
+                                    href="https://operone.vercel.app/auth-success/troubleshoot"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-muted-foreground hover:underline hover:underline-offset-2"
+                                >
+                                    Click here
+                                </a>
                             </div>
                         </DialogContent>
                     </Dialog>
 
                     {/* Privacy Policy Link */}
-                    <div className="pt-4">
+                    <div className="pt-2 text-xs text-muted-foreground">
+                        Our commitment to privacy -{" "}
                         <a
                             href="https://operone.vercel.app/privacy"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-muted-foreground hover:underline"
+                            className="underline hover:text-primary"
                         >
-                            Privacy Policy
+                            Privacy policy
                         </a>
                     </div>
                 </CardContent>

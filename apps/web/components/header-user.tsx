@@ -33,7 +33,7 @@ export function HeaderUser({
   user: {
     name: string
     email: string
-    avatar: string
+    image: string
   }
   isMobile?: boolean
 }) {
@@ -54,7 +54,7 @@ export function HeaderUser({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            {user.image && <AvatarImage src={user.image} alt={user.name} />}
             <AvatarFallback>
               {user.name.charAt(0) || "U"}
             </AvatarFallback>
@@ -88,18 +88,18 @@ export function HeaderUser({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut}>
-              {isSigningOut ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing out...
-                </>
-              ) : (
-                <>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </>
-              )}
-            </DropdownMenuItem>
+          {isSigningOut ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing out...
+            </>
+          ) : (
+            <>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </>
+          )}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

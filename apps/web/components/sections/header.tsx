@@ -7,7 +7,6 @@ import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { HeaderUser } from "@/components/header-user"
 import { useState, useEffect } from "react"
-import { Loader2 } from "lucide-react"
 
 export default function Header() {
   const { data: session, status } = useSession()
@@ -28,7 +27,7 @@ export default function Header() {
   if (status === 'loading') {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <nav className="container flex h-14 items-center">
+        <nav className="container flex h-14 items-center max">
           <div className="mr-4 hidden md:flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
               <Image src="/logo/passkey.svg" alt="Operone" width={24} height={24} className="h-6 w-6" />
@@ -93,7 +92,7 @@ export default function Header() {
                 user={{
                   name: session.user?.name || "",
                   email: session.user?.email || "",
-                  avatar: session.user?.image || ""
+                  image: session.user?.image || ""
                 }}
                 isMobile={isMobile}
               />

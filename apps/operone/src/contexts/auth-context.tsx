@@ -120,6 +120,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    const checkExistingWebSession = async () => {
+        try {
+            const response = await fetch('http://localhost:3000/api/auth/session-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                // Store user data and token
+                if (window.electronAPI) {
+                    await window.electronAPI.setUser(data.user, data.token)
+                    setUser(data.user)
+                }
+                return true
+            }
+        } catch (error) {
+            console.log('No existing web session found, proceeding with browser login')
+        }
+        return false
+    }
+
     const login = async () => {
         setIsLoading(true)
         setError(null)
@@ -128,6 +150,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!window.electronAPI) {
                 throw new Error('Electron API not available')
             }
+
+            // First, try to check for existing web session
+            const hasExistingSession = await checkExistingWebSession()
+            
+            if (hasExistingSession) {
+                setIsLoading(false)
+                return
+            }
+
+            // If no existing session, proceed with browser login
             await window.electronAPI.login()
             // The actual authentication will happen via deep link callback
         } catch (err) {
