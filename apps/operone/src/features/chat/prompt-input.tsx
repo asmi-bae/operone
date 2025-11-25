@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useCallback, useMemo } from "react"
-import { Loader2, Send } from "lucide-react"
+import { Loader2, ArrowUp, Paperclip, Mic } from "lucide-react"
 
 import {
   PromptInput,
@@ -70,8 +70,12 @@ export const ChatPromptInput = React.memo(function ChatPromptInput({
       <PromptInputFooter>
         <PromptInputTools>
           <PromptInputButton variant="ghost" size="sm">
-            <Send className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
             <span className="sr-only">Send message</span>
+          </PromptInputButton>
+          <PromptInputButton variant="ghost" size="sm">
+            <Mic className="h-4 w-4" />
+            <span className="sr-only">Voice input</span>
           </PromptInputButton>
           <PromptInputSelect
             value={selectedModel}
