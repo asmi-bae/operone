@@ -32,7 +32,7 @@ export const getNavItems = (role: string) => {
     }
   ]
 
-  const roleBasedItems = {
+  const roleBasedItems: Record<string, any> = {
     SUPER_ADMIN: [
       {
         title: "Users Management",
@@ -151,7 +151,8 @@ export const getNavItems = (role: string) => {
           { title: "Treatment Plans", url: "/patients/treatments" }
         ]
       }
-    ]
+    ],
+    GUEST: []
   }
 
   // Common items based on role
