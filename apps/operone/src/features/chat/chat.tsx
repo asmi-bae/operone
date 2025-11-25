@@ -5,7 +5,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAI } from "@/contexts/ai-context";
 import { useProject } from "@/contexts/project-context";
-import { useLocation } from "react-router-dom";
 import type { FileUIPart, ChatStatus } from "ai";
 
 // AI Component Imports
@@ -46,8 +45,6 @@ export const ChatLayout = React.memo(function ChatLayout({
     updateChat, 
     generateChatTitle 
   } = useProject();
-  
-  const location = useLocation();
   
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
