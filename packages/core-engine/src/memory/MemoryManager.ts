@@ -1,4 +1,12 @@
-import Database from 'better-sqlite3';
+// Conditional import for better-sqlite3 (Node.js only)
+let Database: any;
+try {
+  Database = require('better-sqlite3');
+} catch (error) {
+  // better-sqlite3 not available (browser environment)
+  console.warn('better-sqlite3 not available, using browser memory manager');
+}
+
 import { Memory } from '@repo/types';
 
 export interface MemoryEntry {
@@ -9,11 +17,15 @@ export interface MemoryEntry {
 }
 
 export class MemoryManager implements Memory {
-  private db: Database.Database;
+  private db: any;
   public shortTerm: string[] = [];
   private readonly maxShortTermSize = 10;
 
   constructor(dbPath: string = './operone-memory.db') {
+    if (!Database) {
+      throw new Error('MemoryManager requires better-sqlite3, which is not available in browser environment. Use BrowserMemoryManager instead.');
+    }
+    
     this.db = new Database(dbPath);
     this.initializeDatabase();
   }

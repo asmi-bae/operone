@@ -20,6 +20,7 @@ model User {
     sessions          Session[]
     authenticators    Authenticator[]
     desktopAuthTokens DesktopAuthToken[]
+    aiProviders       AIProvider[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -99,4 +100,30 @@ model DesktopAuthToken {
     createdAt DateTime @default(now())
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AIProvider {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    userId String @db.ObjectId
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    // Provider details
+    name  String // User-defined name (e.g., "My OpenAI", "Work Anthropic")
+    type  String // openai, anthropic, google, mistral, ollama, openrouter, custom
+    model String // Model ID (e.g., "gpt-4o-mini", "claude-3-5-sonnet")
+
+    // Configuration (encrypted)
+    apiKey       String? // Encrypted API key
+    baseURL      String? // For Ollama, custom endpoints
+    organization String? // For OpenAI organization
+
+    // Metadata
+    isActive  Boolean @default(false) // Only one can be active per user
+    isDefault Boolean @default(false) // Default provider for new chats
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([userId, isActive])
 }

@@ -40,5 +40,17 @@ export interface ElectronAPI {
   getUser: () => Promise<User | null>
   setUser: (user: User, token: string) => Promise<void>
   onAuthSuccess: (callback: (event: any, data: { token: string }) => void) => () => void
+  
+  // AI Provider methods
+  ai: {
+    sendMessage: (message: string) => Promise<string>
+    getActiveProvider: () => Promise<any>
+    getAllProviders: () => Promise<Record<string, any>>
+    setActiveProvider: (id: string) => Promise<boolean>
+    addProvider: (id: string, config: any) => Promise<void>
+    removeProvider: (id: string) => Promise<boolean>
+    updateProvider: (id: string, config: any) => Promise<void>
+    testProvider: (id: string) => Promise<{ success: boolean; error?: string }>
+  }
 }
 

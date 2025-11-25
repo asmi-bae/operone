@@ -11,8 +11,8 @@ export class RAGEngine {
   private vectorStore: VectorStore;
   private memoryManager: MemoryManager;
 
-  constructor(memoryManager: MemoryManager) {
-    this.vectorStore = new VectorStore();
+  constructor(memoryManager: MemoryManager, embeddingModel?: any) {
+    this.vectorStore = new VectorStore(embeddingModel);
     this.memoryManager = memoryManager;
   }
 

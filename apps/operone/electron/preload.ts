@@ -34,6 +34,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('auth-success', callback)
     return () => ipcRenderer.removeListener('auth-success', callback)
   },
+  
+  // AI Provider Management
+  ai: {
+    sendMessage: (message: string) => ipcRenderer.invoke('ai:provider:sendMessage', message),
+    getActiveProvider: () => ipcRenderer.invoke('ai:provider:getActive'),
+    getAllProviders: () => ipcRenderer.invoke('ai:provider:getAll'),
+    setActiveProvider: (id: string) => ipcRenderer.invoke('ai:provider:setActive', id),
+    addProvider: (id: string, config: any) => ipcRenderer.invoke('ai:provider:add', { id, config }),
+    removeProvider: (id: string) => ipcRenderer.invoke('ai:provider:remove', id),
+    updateProvider: (id: string, config: any) => ipcRenderer.invoke('ai:provider:update', { id, config }),
+    testProvider: (id: string) => ipcRenderer.invoke('ai:provider:test', id),
+    getModels: (providerType: string) => ipcRenderer.invoke('ai:getModels', providerType),
+  },
 })
 
 // Type definitions for TypeScript
@@ -53,6 +66,19 @@ export interface ElectronAPI {
   getUser: () => Promise<{ id: string; email: string; name: string; image?: string } | null>
   setUser: (user: any, token: string) => Promise<void>
   onAuthSuccess: (callback: (event: any, data: { token: string }) => void) => () => void
+  
+  // AI Provider Management
+  ai: {
+    sendMessage: (message: string) => Promise<string>
+    getActiveProvider: () => Promise<any>
+    getAllProviders: () => Promise<any>
+    setActiveProvider: (id: string) => Promise<boolean>
+    addProvider: (id: string, config: any) => Promise<void>
+    removeProvider: (id: string) => Promise<boolean>
+    updateProvider: (id: string, config: any) => Promise<void>
+    testProvider: (id: string) => Promise<{ success: boolean; error?: string }>
+    getModels: (providerType: string) => Promise<any[]>
+  }
 }
 
 declare global {

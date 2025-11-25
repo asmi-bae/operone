@@ -4,3 +4,4 @@ export { RAGEngine } from './rag/RAGEngine';
 export { ReasoningEngine } from './reasoning/ReasoningEngine';
 export { OSAgent } from './agents/OSAgent';
 export { AssistantAgent } from './agents/AssistantAgent';
+export { ModelProvider, ModelRegistry, ProviderManager, createDefaultConfig } from './model-provider';

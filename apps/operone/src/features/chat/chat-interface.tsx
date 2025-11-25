@@ -1,15 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, User } from 'lucide-react'
+import { Send, Sparkles, User, Settings } from 'lucide-react'
 import { Button } from '@/components'
 import { Input } from '@/components'
+import { Select } from '@/components'
 import { cn } from '@/lib/utils'
-import type { Message } from '../../types'
 import { ScrollArea } from '@/components'
+import { useAI } from '@/contexts/ai-context'
+import { useNavigate } from 'react-router-dom'
+import type { ModelInfo } from '@repo/types'
 
 export function ChatInterface() {
-    const [messages, setMessages] = useState<Message[]>([])
+    const { messages, sendMessage, isLoading, activeProvider, getAvailableModels } = useAI()
+    const navigate = useNavigate()
     const [input, setInput] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
+    const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
+    const [selectedModel, setSelectedModel] = useState('')
     const scrollRef = useRef<HTMLDivElement>(null)
 
     // Auto-scroll to bottom
@@ -19,31 +24,38 @@ export function ChatInterface() {
         }
     }, [messages, isLoading])
 
-    const handleSend = async () => {
-        if (!input.trim()) return
-
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: input,
-            timestamp: new Date()
+    // Load available models when provider changes
+    useEffect(() => {
+        if (activeProvider) {
+            loadModels()
         }
+    }, [activeProvider])
 
-        setMessages(prev => [...prev, userMessage])
-        setInput('')
-        setIsLoading(true)
-
-        // Simulate AI response
-        setTimeout(() => {
-            const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: 'This is a placeholder response. The AI engine will be connected via Electron IPC.',
-                timestamp: new Date()
+    const loadModels = async () => {
+        if (!activeProvider) return
+        
+        try {
+            const models = await getAvailableModels(activeProvider.type)
+            setAvailableModels(models)
+            if (models.length > 0) {
+                setSelectedModel(activeProvider.model)
             }
-            setMessages(prev => [...prev, aiMessage])
-            setIsLoading(false)
-        }, 1000)
+        } catch (error) {
+            console.error('Failed to load models:', error)
+        }
+    }
+
+    const handleSend = async () => {
+        if (!input.trim() || isLoading) return
+
+        const message = input.trim()
+        setInput('')
+
+        try {
+            await sendMessage(message)
+        } catch (error) {
+            console.error('Failed to send message:', error)
+        }
     }
 
     return (
@@ -135,6 +147,37 @@ export function ChatInterface() {
 
             {/* Input Area */}
             <div className="p-4 pb-6">
+                {/* Provider Info and Model Selector */}
+                <div className="flex items-center gap-4 mb-3">
+                    {activeProvider ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Using:</span>
+                            <span className="font-medium">{activeProvider.type}</span>
+                            <span>•</span>
+                            <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                {availableModels.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.name}
+                                    </option>
+                                ))}
+                            </Select>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Settings className="w-4 h-4" />
+                            <span>No AI provider configured</span>
+                            <Button 
+                                variant="link" 
+                                size="sm" 
+                                className="h-auto p-0 text-primary"
+                                onClick={() => navigate('/settings/account')}
+                            >
+                                Configure now
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
                 <div className="relative bg-muted/30 rounded-3xl border focus-within:ring-1 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all shadow-sm">
                     <Input
                         value={input}

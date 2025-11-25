@@ -1,7 +1,13 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+// Suppress security warnings in development (before any other imports)
+if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
+  process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'
+}
+
+import { app, BrowserWindow, shell, ipcMain, session } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Store from 'electron-store'
+import type { ProviderType } from '@repo/types'
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url)
@@ -20,64 +26,38 @@ app.commandLine.appendSwitch('disable-dev-shm-usage')
 app.commandLine.appendSwitch('disable-gpu')
 app.commandLine.appendSwitch('disable-gpu-compositing')
 
-import { OSAgent } from '../../../packages/core-engine/src'
-import { openai } from '@ai-sdk/openai'
+import { getAIService } from './services/ai-service'
 
-// AI Service placeholder - will be initialized when needed
-let aiService: any = null
+// AI Service - initialized lazily
+let aiService: ReturnType<typeof getAIService> | null = null
 
-async function initializeAIService() {
-  if (aiService) return aiService
-
-  const apiKey = store.get('settings.openaiApiKey') as string || process.env.OPENAI_API_KEY
-  
-  if (!apiKey) {
-    console.warn('No OpenAI API key found')
+function getOrCreateAIService() {
+  if (!aiService) {
+    aiService = getAIService()
   }
-
-  // Initialize agent
-  const agent = new OSAgent({
-    model: openai('gpt-4o'),
-    allowedPaths: [app.getPath('home'), app.getPath('documents'), app.getPath('downloads')],
-    allowedCommands: ['ls', 'echo', 'grep', 'cat', 'git', 'npm']
-  })
-  
-  aiService = {
-    sendMessage: async (message: string) => {
-      try {
-        // Simple Think-Act loop
-        const thought = await agent.think(message)
-        
-        if (thought.includes('FINAL ANSWER:')) {
-          const answer = thought.split('FINAL ANSWER:')[1];
-          return answer ? answer.trim() : thought;
-        }
-        
-        // If it's an action, execute it
-        await agent.act(thought)
-        const observation = await agent.observe()
-        
-        return `Executed: ${thought}\nResult: ${observation}`
-      } catch (error: any) {
-        console.error('AI Error:', error)
-        return `Error: ${error.message}`
-      }
-    },
-    ingestDocument: async (_data: any) => {
-    },
-    queryMemory: async (_query: string) => {
-      return []
-    },
-    getStats: async () => {
-      return { vectorDocuments: 0, shortTermMemory: 0 }
-    }
-  }
-
   return aiService
 }
 
 function createWindow() {
   try {
+    // Set CSP at session level for early application
+    const defaultSession = session.defaultSession
+    
+    // Set CSP directly on session
+    defaultSession.webRequest.onHeadersReceived((details: any, callback: any) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http: ws: wss:; font-src 'self' data:;"]
+        }
+      })
+    })
+
+    // Additional security settings
+    defaultSession.setPermissionRequestHandler((_webContents: any, _permission: any, callback: any) => {
+      callback(false) // Deny all permission requests by default
+    })
+
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -85,6 +65,9 @@ function createWindow() {
         preload: path.join(__dirname, '../electron/preload.cjs'),
         nodeIntegration: false,
         contextIsolation: true,
+        webSecurity: true,
+        allowRunningInsecureContent: false,
+        experimentalFeatures: false,
       },
     })
 
@@ -94,6 +77,20 @@ function createWindow() {
     } else {
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
     }
+
+    // Ensure CSP is applied
+    mainWindow.webContents.on('did-finish-load', () => {
+      if (mainWindow) {
+        mainWindow.webContents.executeJavaScript(`
+          if (!document.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = 'Content-Security-Policy';
+            meta.content = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http: ws: wss:; font-src 'self' data:;";
+            document.head.appendChild(meta);
+          }
+        `)
+      }
+    })
 
     mainWindow.on('closed', () => {
       mainWindow = null
@@ -137,26 +134,72 @@ function handleDeepLink(url: string) {
 
 // IPC Handlers
 function setupIPCHandlers() {
-  // AI Chat
+  // Legacy AI Chat (for backward compatibility)
   ipcMain.handle('ai:sendMessage', async (_event, message: string) => {
-    const service = await initializeAIService()
+    const service = getOrCreateAIService()
     return await service.sendMessage(message)
   })
 
   // Memory operations
-  ipcMain.handle('ai:ingestDocument', async (_event, data) => {
-    const service = await initializeAIService()
-    return await service.ingestDocument(data)
+  ipcMain.handle('ai:ingestDocument', async (_event, { id, content, metadata }) => {
+    const service = getOrCreateAIService()
+    return await service.ingestDocument(id, content, metadata)
   })
 
-  ipcMain.handle('ai:queryMemory', async (_event, query: string) => {
-    const service = await initializeAIService()
-    return await service.queryMemory(query)
+  ipcMain.handle('ai:queryMemory', async (_event, _query: string) => {
+    // Not implemented yet
+    return []
   })
 
   ipcMain.handle('ai:getStats', async () => {
-    const service = await initializeAIService()
-    return await service.getStats()
+    const service = getOrCreateAIService()
+    return service.getMemoryStats()
+  })
+
+  // AI Provider Management
+  ipcMain.handle('ai:provider:sendMessage', async (_event, message: string) => {
+    const service = getOrCreateAIService()
+    return await service.sendMessage(message)
+  })
+
+  ipcMain.handle('ai:provider:getActive', async () => {
+    const service = getOrCreateAIService()
+    return service.getActiveProviderConfig()
+  })
+
+  ipcMain.handle('ai:provider:getAll', async () => {
+    const service = getOrCreateAIService()
+    return service.getAllProviderConfigs()
+  })
+
+  ipcMain.handle('ai:provider:setActive', async (_event, id: string) => {
+    const service = getOrCreateAIService()
+    return service.setActiveProvider(id)
+  })
+
+  ipcMain.handle('ai:provider:add', async (_event, { id, config }) => {
+    const service = getOrCreateAIService()
+    service.addProvider(id, config)
+  })
+
+  ipcMain.handle('ai:provider:remove', async (_event, id: string) => {
+    const service = getOrCreateAIService()
+    return service.removeProvider(id)
+  })
+
+  ipcMain.handle('ai:provider:update', async (_event, { id, config }) => {
+    const service = getOrCreateAIService()
+    service.updateProvider(id, config)
+  })
+
+  ipcMain.handle('ai:provider:test', async (_event, id: string) => {
+    const service = getOrCreateAIService()
+    return await service.testProvider(id)
+  })
+
+  ipcMain.handle('ai:getModels', async (_event, providerType: ProviderType) => {
+    const service = getOrCreateAIService()
+    return service.getModels(providerType)
   })
 
   // Settings

@@ -1,9 +1,10 @@
 import { Agent } from '@repo/types';
-import { FileTool, ShellTool } from '../../../mcp/src';
+import { FileTool, ShellTool } from '@repo/mcp-tools';
 import { generateText } from 'ai';
+import { ModelProvider } from '../model-provider';
 
 export interface OSAgentConfig {
-  model: any; // Vercel AI SDK model (openai, anthropic, etc.)
+  modelProvider: ModelProvider;
   allowedPaths?: string[];
   allowedCommands?: string[];
 }
@@ -13,14 +14,14 @@ export class OSAgent implements Agent {
   public readonly name = 'OS Agent';
   public readonly role = 'os' as const;
 
-  private model: any;
+  private modelProvider: ModelProvider;
   private fileTool: FileTool;
   private shellTool: ShellTool;
   // private logTool: LogTool;
   private lastAction: string = '';
 
   constructor(config: OSAgentConfig) {
-    this.model = config.model;
+    this.modelProvider = config.modelProvider;
     this.fileTool = new FileTool(config.allowedPaths);
     this.shellTool = new ShellTool(config.allowedCommands);
     // this.logTool = new LogTool();
@@ -38,7 +39,7 @@ If you have a final answer, prefix it with "FINAL ANSWER:".
 Otherwise, describe the action you want to take.`;
 
     const { text } = await generateText({
-      model: this.model,
+      model: this.modelProvider.getModel(),
       system: systemPrompt,
       prompt: `User request: ${input}\n\nWhat should I do?`,
     });

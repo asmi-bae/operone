@@ -2,9 +2,10 @@ import { Agent } from '@repo/types';
 import { RAGEngine } from '../rag/RAGEngine';
 import { MemoryManager } from '../memory/MemoryManager';
 import { generateText } from 'ai';
+import { ModelProvider } from '../model-provider';
 
 export interface AssistantAgentConfig {
-  model: any; // Vercel AI SDK model
+  modelProvider: ModelProvider;
   memoryManager: MemoryManager;
 }
 
@@ -13,15 +14,18 @@ export class AssistantAgent implements Agent {
   public readonly name = 'Assistant Agent';
   public readonly role = 'assistant' as const;
 
-  private model: any;
+  private modelProvider: ModelProvider;
   private ragEngine: RAGEngine;
   private memoryManager: MemoryManager;
   private lastThought: string = '';
 
   constructor(config: AssistantAgentConfig) {
-    this.model = config.model;
+    this.modelProvider = config.modelProvider;
     this.memoryManager = config.memoryManager;
-    this.ragEngine = new RAGEngine(this.memoryManager);
+    
+    // Get embedding model from provider
+    const embeddingModel = this.modelProvider.getEmbeddingModel();
+    this.ragEngine = new RAGEngine(this.memoryManager, embeddingModel);
   }
 
   async think(input: string): Promise<string> {
@@ -41,7 +45,7 @@ Use the provided context to answer questions accurately.
 If you have a final answer, prefix it with "FINAL ANSWER:".`;
 
     const { text } = await generateText({
-      model: this.model,
+      model: this.modelProvider.getModel(),
       system: systemPrompt,
       prompt: `Context from memory:\n${context}\n\nUser question: ${input}\n\nProvide a thoughtful response.`,
     });

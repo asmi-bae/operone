@@ -24,6 +24,7 @@ import {
   History,
   Code,
   Loader2,
+  Brain,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -99,6 +100,7 @@ const data: {
       url: "/dashboard/settings",
       icon: Code,
       items: [
+        { title: "AI Providers", url: "/dashboard/settings/ai-providers", icon: Brain },
         { title: "Repositories", url: "/dashboard/settings/repositories", icon: Package },
         { title: "Apps & OAuth", url: "/dashboard/settings/apps", icon: Smartphone },
         { title: "Developer settings", url: "/dashboard/settings/developer", icon: Code },
@@ -257,8 +259,8 @@ export function AppSidebar() {
                         onClick={() => handleNavigation(item.href)}
                         disabled={isSignout && isSigningOut}
                         className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors group ${isDestructive
-                            ? "hover:bg-destructive hover:text-destructive-foreground"
-                            : "hover:bg-accent/50"
+                          ? "hover:bg-destructive hover:text-destructive-foreground"
+                          : "hover:bg-accent/50"
                           } ${(isSignout && isSigningOut) ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isSignout && isSigningOut ? (

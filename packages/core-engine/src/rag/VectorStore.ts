@@ -1,3 +1,5 @@
+import { embed } from 'ai';
+
 export interface VectorDocument {
   id: string;
   content: string;
@@ -7,20 +9,10 @@ export interface VectorDocument {
 
 export class VectorStore {
   private documents: Map<string, VectorDocument> = new Map();
+  private embeddingModel: any;
 
-  /**
-   * Simple embedding function using character-based hashing
-   * In production, this would use a proper embedding model
-   */
-  private createEmbedding(text: string): number[] {
-    const embedding = new Array(128).fill(0);
-    for (let i = 0; i < text.length; i++) {
-      const charCode = text.charCodeAt(i);
-      embedding[i % 128] += charCode;
-    }
-    // Normalize
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => val / magnitude);
+  constructor(embeddingModel?: any) {
+    this.embeddingModel = embeddingModel;
   }
 
   /**
@@ -28,17 +20,32 @@ export class VectorStore {
    */
   private cosineSimilarity(a: number[], b: number[]): number {
     let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    
     for (let i = 0; i < a.length; i++) {
       dotProduct += (a[i] ?? 0) * (b[i] ?? 0);
+      normA += (a[i] ?? 0) * (a[i] ?? 0);
+      normB += (b[i] ?? 0) * (b[i] ?? 0);
     }
-    return dotProduct;
+    
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   /**
    * Add a document to the vector store
    */
   public async addDocument(id: string, content: string, metadata?: Record<string, any>): Promise<void> {
-    const embedding = this.createEmbedding(content);
+    if (!this.embeddingModel) {
+      throw new Error('VectorStore not initialized with an embedding model');
+    }
+
+    const { embedding } = await embed({
+      model: this.embeddingModel,
+      value: content,
+    });
+
     this.documents.set(id, { id, content, embedding, metadata });
   }
 
@@ -46,7 +53,14 @@ export class VectorStore {
    * Search for similar documents using vector similarity
    */
   public async search(query: string, topK: number = 5): Promise<VectorDocument[]> {
-    const queryEmbedding = this.createEmbedding(query);
+    if (!this.embeddingModel) {
+      throw new Error('VectorStore not initialized with an embedding model');
+    }
+
+    const { embedding: queryEmbedding } = await embed({
+      model: this.embeddingModel,
+      value: query,
+    });
     
     const results = Array.from(this.documents.values())
       .map(doc => ({
