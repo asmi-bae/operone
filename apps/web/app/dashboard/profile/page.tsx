@@ -2,8 +2,8 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import type React from "react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Edit2 } from "lucide-react"
+import Image from "next/image"
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -11,6 +11,9 @@ export default async function ProfilePage() {
   if (!session) {
     redirect('/login')
   }
+
+  const user = session.user
+  const userInitial = user?.name?.charAt(0) || "U"
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -26,7 +29,7 @@ export default async function ProfilePage() {
               <label className="block text-sm font-medium mb-2">Name</label>
               <input
                 type="text"
-                defaultValue="MD Shoaib Khan"
+                defaultValue={user?.name || ""}
                 className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -39,7 +42,7 @@ export default async function ProfilePage() {
               <div className="flex gap-2">
                 <input
                   type="email"
-                  defaultValue="khan2310310484@g.edu.bd"
+                  defaultValue={user?.email || ""}
                   className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
                 />
                 <Button variant="outline" size="sm">
@@ -103,10 +106,23 @@ export default async function ProfilePage() {
 
         <div className="col-span-1">
           <div className="flex flex-col items-center">
-            <Avatar className="h-32 w-32 mb-4">
-              <AvatarImage src="https://github.com/shadcn.png" alt="Profile" />
-              <AvatarFallback>MK</AvatarFallback>
-            </Avatar>
+            {user?.image ? (
+              <div className="relative mb-4">
+                <Image
+                  src={user.image}
+                  alt={user.name || "Profile"}
+                  width={128}
+                  height={128}
+                  className="h-32 w-32 rounded-full border-2 shadow-md"
+                />
+              </div>
+            ) : (
+              <div className="h-32 w-32 rounded-full bg-primary/20 border-2 border-primary/20 flex items-center justify-center shadow-md mb-4">
+                <span className="text-3xl font-bold text-primary">
+                  {userInitial}
+                </span>
+              </div>
+            )}
             <Button variant="outline" size="sm" className="gap-2 bg-transparent">
               <Edit2 size={16} />
               Edit

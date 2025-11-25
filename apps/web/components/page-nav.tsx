@@ -3,13 +3,13 @@
 import * as React from "react"
 import { useState } from "react"
 import {
-  Home,
   LogOut,
   Menu,
   X,
   ChevronDown,
   ChevronRight,
   User,
+  UserCircle,
   Shield,
   Palette,
   Accessibility,
@@ -18,17 +18,12 @@ import {
   Mail,
   Key,
   Monitor,
-  Terminal,
-  Building,
-  Flag,
   Package,
-  Bot,
-  FileText,
-  Clock,
   Lock,
   Smartphone,
   History,
   Code,
+  Loader2,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -59,34 +54,33 @@ const data: {
 } = {
   navItems: [
     { category: "Main" },
-    { title: "Dashboard", url: "/dashboard", icon: Home },
+    { title: "Profile", url: "/dashboard", icon: User },
     { title: "Security", url: "/dashboard/security", icon: Shield },
     { title: "Sessions", url: "/dashboard/sessions", icon: Monitor },
     
     { category: "Quick Access" },
-    { title: "Public profile", url: "/dashboard/settings/profile", icon: User },
-    { title: "Account", url: "/dashboard/settings/account", icon: Shield },
-    { title: "Appearance", url: "/dashboard/settings/appearance", icon: Palette },
-    { title: "Notifications", url: "/dashboard/settings/notifications", icon: Bell },
-    { title: "Passkeys", url: "/dashboard/settings/password", icon: Key },
+    { title: "Account", url: "/dashboard/account", icon: Shield },
+    { title: "Appearance", url: "/dashboard/appearance", icon: Palette },
+    { title: "Notifications", url: "/dashboard/notifications", icon: Bell },
+    { title: "Passkeys", url: "/dashboard/password", icon: Key },
 
     { category: "Account Management" },
     {
       title: "Billing & Emails",
-      url: "/dashboard/settings",
+      url: "/dashboard/billing",
       icon: CreditCard,
       items: [
-        { title: "Billing", url: "/dashboard/settings/billing", icon: CreditCard },
-        { title: "Emails", url: "/dashboard/settings/emails", icon: Mail },
+        { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
+        { title: "Emails", url: "/dashboard/emails", icon: Mail },
       ],
     },
 
     {
       title: "Preferences",
-      url: "/dashboard/settings",
+      url: "/dashboard/accessibility",
       icon: Palette,
       items: [
-        { title: "Accessibility", url: "/dashboard/settings/accessibility", icon: Accessibility },
+        { title: "Accessibility", url: "/dashboard/accessibility", icon: Accessibility },
       ],
     },
 
@@ -125,6 +119,7 @@ export function AppSidebar() {
     settings: true,
   })
   const [activePath, setActivePath] = useState("/dashboard")
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
 
   React.useEffect(() => {
@@ -138,14 +133,20 @@ export function AppSidebar() {
     }))
   }
 
-  const handleNavigation = (href: string) => {
+  const handleNavigation = async (href: string) => {
     if (href === "/dashboard/signout") {
-      signOut({ redirectTo: "/login" })
+      setIsSigningOut(true)
+      try {
+        await signOut({ redirectTo: "/login" })
+      } catch (error) {
+        console.error("Sign out error:", error)
+        setIsSigningOut(false)
+      }
     } else {
       setActivePath(href)
       router.push(href)
+      setIsMobileMenuOpen(false)
     }
-    setIsMobileMenuOpen(false)
   }
 
   return (
@@ -153,7 +154,7 @@ export function AppSidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-background border border-border/40 hover:bg-accent/50 transition-colors"
+        className="lg:hidden fixed top-[12px] left-4 z-50 p-2 rounded-lg bg-background border border-border/40 hover:bg-accent/50 transition-colors"
       >
         {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -165,7 +166,7 @@ export function AppSidebar() {
         }`
       }>
         <div className="h-full overflow-y-auto">
-          <div className="px-4 py-6">
+          <div className="px-4 py-6 pt-16 lg:pt-6">
             <div className="space-y-4">
               {/* Navigation Items */}
               <div className="space-y-1">
@@ -252,18 +253,26 @@ export function AppSidebar() {
                 <div className="space-y-1">
                   {data.account.map((item) => {
                     const isDestructive = item.variant === "destructive"
+                    const isSignout = item.href === "/dashboard/signout"
                     return (
                       <button
                         key={item.name}
                         onClick={() => handleNavigation(item.href)}
+                        disabled={isSignout && isSigningOut}
                         className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors group ${
                           isDestructive 
                             ? "hover:bg-destructive hover:text-destructive-foreground" 
                             : "hover:bg-accent/50"
-                        }`}
+                        } ${(isSignout && isSigningOut) ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
-                        <item.icon className={`mr-3 h-4 w-4 transition-colors text-foreground`} />
-                        <span className="font-medium">{item.name}</span>
+                        {isSignout && isSigningOut ? (
+                          <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                        ) : (
+                          <item.icon className={`mr-3 h-4 w-4 transition-colors text-foreground`} />
+                        )}
+                        <span className="font-medium">
+                          {isSignout && isSigningOut ? "Signing out..." : item.name}
+                        </span>
                       </button>
                     )
                   })}

@@ -7,5 +7,12 @@ interface ProvidersProps {
 }
 
 export function SessionProviderWrapper({ children }: ProvidersProps) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider 
+      refetchInterval={5 * 60} // Refetch every 5 minutes
+      refetchOnWindowFocus={true}
+    >
+      {children}
+    </SessionProvider>
+  );
 }

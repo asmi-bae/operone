@@ -61,7 +61,39 @@ export default function LoginPage() {
             const { options } = await optionsResponse.json()
 
             // Start authentication with the browser
-            const authenticationResponse = await startAuthentication(options)
+            let authenticationResponse
+            try {
+                authenticationResponse = await startAuthentication(options)
+            } catch (webauthnError) {
+                // Handle WebAuthn errors silently - only show toast
+                if (webauthnError instanceof Error) {
+                    if (webauthnError.name === 'NotAllowedError' || 
+                        webauthnError.message.includes('not allowed') || 
+                        webauthnError.message.includes('timed out') ||
+                        webauthnError.message.includes('cancelled')) {
+                        toast.info('Authentication was cancelled.')
+                        return
+                    } else if (webauthnError.name === 'NotFoundError') {
+                        toast.error('No passkey found for this account. Please register a passkey first.')
+                        return
+                    } else if (webauthnError.name === 'SecurityError') {
+                        toast.error('Security requirements not met. Please ensure you are using a secure connection.')
+                        return
+                    } else if (webauthnError.name === 'AbortError') {
+                        toast.info('Authentication was cancelled.')
+                        return
+                    } else if (webauthnError.name === 'TimeoutError') {
+                        toast.error('Authentication timed out. Please try again.')
+                        return
+                    } else {
+                        toast.error(webauthnError.message || 'Failed to login with passkey')
+                        return
+                    }
+                } else {
+                    toast.error('Failed to login with passkey')
+                    return
+                }
+            }
 
             // Verify authentication with NextAuth
             const result = await signIn('webauthn', {
@@ -83,9 +115,6 @@ export default function LoginPage() {
             } else {
                 toast.error("Authentication failed")
             }
-        } catch (err) {
-            console.error('Passkey login error:', err)
-            toast.error(err instanceof Error ? err.message : 'Failed to login with passkey')
         } finally {
             setIsPasskeyLoading(false)
         }
@@ -104,17 +133,17 @@ export default function LoginPage() {
                             : 'Choose your preferred sign-in method'}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-6 pt-0 space-y-4 sm:p-6 sm:pt-0">
                     <Button
                         onClick={handleGoogleLogin}
                         disabled={isGoogleLoading}
                         variant="outline"
-                        className="w-full"
+                        className="w-full max-w-sm"
                         size="lg"
                     >
                         {isGoogleLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                                 Signing in...
                             </>
                         ) : (
@@ -122,8 +151,8 @@ export default function LoginPage() {
                                 <Image
                                     src="https://www.google.com/favicon.ico"
                                     alt="Google"
-                                    width={20}
-                                    height={20}
+                                    width={22}
+                                    height={22}
                                     className="mr-2"
                                 />
                                 Continue with Google
@@ -135,12 +164,12 @@ export default function LoginPage() {
                         onClick={handleGithubLogin}
                         disabled={isGithubLoading}
                         variant="outline"
-                        className="w-full"
+                        className="w-full max-w-sm"
                         size="lg"
                     >
                         {isGithubLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                                 Signing in...
                             </>
                         ) : (
@@ -150,7 +179,7 @@ export default function LoginPage() {
                                     alt="GitHub"
                                     width={20}
                                     height={20}
-                                    className="mr-2"
+                                    className="mr-2 dark:invert"
                                 />
                                 Continue with GitHub
                             </>
@@ -171,18 +200,18 @@ export default function LoginPage() {
                     <Button
                         onClick={handlePasskeyLogin}
                         disabled={isPasskeyLoading}
-                        className="w-full"
+                        className="w-full max-w-sm"
                         size="lg"
                         variant="secondary"
                     >
                         {isPasskeyLoading ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                                 Authenticating...
                             </>
                         ) : (
                             <>
-                                <PasskeyIcon className="mr-2 h-6 w-6" />
+                                <PasskeyIcon className="mr-2" width={24} height={24} />
                                 Sign in with Passkey
                             </>
                         )}
