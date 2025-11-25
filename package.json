@@ -1,4 +1,14 @@
 {
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/ai/*",
+    "packages/system/*",
+    "packages/shared/*",
+    "packages/python-modules/*",
+    "packages/rust-core/*",
+    "packages/cpp-extensions/*"
+  ],
   "name": "operone",
   "version": "0.1.0",
   "description": "Operone - AI integrated desktop application",
