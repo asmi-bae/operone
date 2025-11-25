@@ -20,6 +20,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts"
 import { commonNavItems } from "@/components/app-navigation"
@@ -118,17 +119,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard/overview">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Command className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Operone</span>
-                  <span className="truncate text-xs">AI</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
+            <div className="flex items-center gap-2">
+              <div className="relative group flex-1">
+                <SidebarMenuButton size="lg" asChild className="flex-1">
+                  <Link to="/dashboard/overview">
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                      <Command className="size-4" />
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">Operone</span>
+                      <span className="truncate text-xs">AI</span>
+                    </div>
+                  </Link>
+                </SidebarMenuButton>
+                <SidebarTrigger className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background rounded-md p-1 group-data-[state=expanded]:hidden" />
+              </div>
+              <SidebarTrigger className="opacity-0 group-data-[state=expanded]:opacity-100 transition-opacity duration-200 group-data-[state=icon]:hidden hover:bg-muted rounded-md" />
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
