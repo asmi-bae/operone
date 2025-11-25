@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Command, SquarePlus, MessageSquare, FolderOpen, Search, Library, ChevronRight, ChevronDown } from "lucide-react"
+import { Command, MessageSquare, FolderOpen, ChevronRight, ChevronDown } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 import { NavMain } from "@/components/nav-main"
@@ -23,7 +23,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts"
-import { commonNavItems } from "@/components/app-navigation"
+import { commonNavItems, quickActions, conversations, projects, truncateText } from "@/components/app-navigation"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
@@ -42,37 +42,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }))
   }
   
-  const conversations = [
-    { id: 1, title: "Healthcare AI Discussion", url: "/chat/1", date: "Today" },
-    { id: 2, title: "Patient Management System", url: "/chat/2", date: "Yesterday" },
-    { id: 3, title: "Medical Diagnosis AI", url: "/chat/3", date: "2 days ago" },
-    { id: 4, title: "Treatment Planning", url: "/chat/4", date: "Last week" },
-  ]
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + '...'
-  }
-
-  const projects = [
-    { 
-      id: 1, 
-      name: "Healthcare AI Platform",
-      conversations: [
-        { id: 1, title: "Initial Requirements", url: "/project/1/conv/1" },
-        { id: 2, title: "Architecture Design", url: "/project/1/conv/2" },
-        { id: 3, title: "Implementation Phase", url: "/project/1/conv/3" },
-      ]
-    },
-    { 
-      id: 2, 
-      name: "Patient Portal",
-      conversations: [
-        { id: 1, title: "User Research", url: "/project/2/conv/1" },
-        { id: 2, title: "UI/UX Design", url: "/project/2/conv/2" },
-      ]
-    },
-  ]
   
   // Simple static navigation items
   const navMainItems = React.useMemo(() => [], [])
@@ -144,30 +113,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/chat/new" className="flex items-center gap-2">
-                    <SquarePlus className="w-4 h-4" />
-                    <span>New Chat</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/search" className="flex items-center gap-2">
-                    <Search className="w-4 h-4" />
-                    <span>Search</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/library" className="flex items-center gap-2">
-                    <Library className="w-4 h-4" />
-                    <span>Library</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {quickActions.map((action) => (
+                <SidebarMenuItem key={action.url}>
+                  <SidebarMenuButton asChild>
+                    <Link to={action.url} className="flex items-center gap-2">
+                      <action.icon className="w-4 h-4" />
+                      <span>{action.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -234,7 +189,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild className="text-sidebar-foreground/70">
                     <Link to="/project/new" className="flex items-center gap-2">
-                      <SquarePlus className="w-4 h-4" />
+                      <FolderOpen className="w-4 h-4" />
                       <span>New project</span>
                     </Link>
                   </SidebarMenuButton>

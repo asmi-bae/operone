@@ -11,6 +11,12 @@ import {
   LifeBuoy,
   Send,
   Settings,
+  SquarePlus,
+  Search,
+  Library,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react"
 
 // Define role-based navigation items
@@ -197,4 +203,58 @@ export const commonNavItems = [
     url: "/feedback",
     icon: Send,
   },
-] 
+]
+
+// Quick Actions for sidebar
+export const quickActions = [
+  {
+    title: "New Chat",
+    url: "/chat/new",
+    icon: SquarePlus,
+  },
+  {
+    title: "Search",
+    url: "/search",
+    icon: Search,
+  },
+  {
+    title: "Library",
+    url: "/library",
+    icon: Library,
+  },
+]
+
+// Conversations data
+export const conversations = [
+  { id: 1, title: "Healthcare AI Discussion", url: "/chat/1", date: "Today" },
+  { id: 2, title: "Patient Management System", url: "/chat/2", date: "Yesterday" },
+  { id: 3, title: "Medical Diagnosis AI", url: "/chat/3", date: "2 days ago" },
+  { id: 4, title: "Treatment Planning", url: "/chat/4", date: "Last week" },
+]
+
+// Projects data
+export const projects = [
+  { 
+    id: 1, 
+    name: "Healthcare AI Platform",
+    conversations: [
+      { id: 1, title: "Initial Requirements", url: "/project/1/conv/1" },
+      { id: 2, title: "Architecture Design", url: "/project/1/conv/2" },
+      { id: 3, title: "Implementation Phase", url: "/project/1/conv/3" },
+    ]
+  },
+  { 
+    id: 2, 
+    name: "Patient Portal",
+    conversations: [
+      { id: 1, title: "User Research", url: "/project/2/conv/1" },
+      { id: 2, title: "UI/UX Design", url: "/project/2/conv/2" },
+    ]
+  },
+]
+
+// Utility function for truncating text
+export const truncateText = (text: string, maxLength: number) => {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+} 
