@@ -1,11 +1,10 @@
 import * as React from "react"
-import {
-  Command,
-} from "lucide-react"
+import { Command, SquarePlus, MessageSquare, FolderOpen, Search, Library, ChevronRight, ChevronDown } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
-// import { NavMain } from "@/components/nav-main"
-// import { NavSecondary } from "@/components/nav-secondary"
-import NavUser from "@/components/nav-user"
+
+import { NavMain } from "@/components/nav-main"
+import { NavProjects } from "@/components/nav-projects"
+import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -14,20 +13,68 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts"
-import { getNavItems, commonNavItems } from "@/components/app-navigation"
-import { NavSecondary } from "./nav-secondary"
-import { NavMain } from "./nav-main"
+import { commonNavItems } from "@/components/app-navigation"
 
-export function AppSidebar({ ...props }) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
   const location = useLocation()
   
-  // Remove role-based functionality - use basic navigation for all users
-  const navMainItems = React.useMemo(() => 
-    getNavItems(), [user]
-  )
+  // Optimized data structure like ChatGPT
+  const [expandedSections, setExpandedSections] = React.useState({
+    chats: true,
+    projects: true
+  })
+
+  const toggleSection = (section: 'chats' | 'projects') => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+  
+  const conversations = [
+    { id: 1, title: "Healthcare AI Discussion", url: "/chat/1", date: "Today" },
+    { id: 2, title: "Patient Management System", url: "/chat/2", date: "Yesterday" },
+    { id: 3, title: "Medical Diagnosis AI", url: "/chat/3", date: "2 days ago" },
+    { id: 4, title: "Treatment Planning", url: "/chat/4", date: "Last week" },
+  ]
+
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + '...'
+  }
+
+  const projects = [
+    { 
+      id: 1, 
+      name: "Healthcare AI Platform",
+      conversations: [
+        { id: 1, title: "Initial Requirements", url: "/project/1/conv/1" },
+        { id: 2, title: "Architecture Design", url: "/project/1/conv/2" },
+        { id: 3, title: "Implementation Phase", url: "/project/1/conv/3" },
+      ]
+    },
+    { 
+      id: 2, 
+      name: "Patient Portal",
+      conversations: [
+        { id: 1, title: "User Research", url: "/project/2/conv/1" },
+        { id: 2, title: "UI/UX Design", url: "/project/2/conv/2" },
+      ]
+    },
+  ]
+  
+  // Simple static navigation items
+  const navMainItems = React.useMemo(() => [], [])
 
   const getInitials = (user: any) => {
     if (!user || !user?.name) return 'GU'
@@ -52,17 +99,22 @@ export function AppSidebar({ ...props }) {
   const sidebarData = {
     user: {
       name: user?.name || 'Guest User',
-      email: user?.email,
+      email: user?.email || 'guest@example.com',
       avatar: user?.image || null,
       initials: getInitials(user)
     },
     navMain: navMainItems,
     navSecondary: filteredNavSecondary,
-    projects: []
+    projects: [], // No projects for now
+    teams: [{
+      name: "Operone",
+      logo: Command,
+      plan: "Professional"
+    }]
   }
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -73,7 +125,7 @@ export function AppSidebar({ ...props }) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Operone</span>
-                  <span className="truncate text-xs">Dashboard</span>
+                  <span className="truncate text-xs">AI</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -81,13 +133,138 @@ export function AppSidebar({ ...props }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        {/* Non-collapsible Quick Actions */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/chat/new" className="flex items-center gap-2">
+                    <SquarePlus className="w-4 h-4" />
+                    <span>New Chat</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/search" className="flex items-center gap-2">
+                    <Search className="w-4 h-4" />
+                    <span>Search</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/library" className="flex items-center gap-2">
+                    <Library className="w-4 h-4" />
+                    <span>Library</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <NavMain items={sidebarData.navMain} />
-        {/* <NavProjects projects={sidebarData.projects} /> */}
-        <NavSecondary items={sidebarData.navSecondary} className="mt-auto" />
+        
+        {/* Chats Section */}
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden gap-0 py-1">
+          <SidebarGroupLabel>
+            <SidebarMenuButton 
+              onClick={() => toggleSection('chats')}
+              className="w-full justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Chats
+              </span>
+              {expandedSections.chats ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </SidebarMenuButton>
+          </SidebarGroupLabel>
+          {expandedSections.chats && (
+            <SidebarGroupContent>
+              <div className="max-h-64 overflow-y-auto">
+                <SidebarMenu>
+                  {conversations.map((conversation) => (
+                    <SidebarMenuItem key={conversation.id}>
+                      <SidebarMenuButton asChild>
+                        <Link to={conversation.url} className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{truncateText(conversation.title, 20)}</span>
+                          </div>
+                          {conversation.date && (
+                            <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">{conversation.date}</span>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        {/* Projects Section */}
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden gap-0 py-1">
+          <SidebarGroupLabel>
+            <SidebarMenuButton 
+              onClick={() => toggleSection('projects')}
+              className="w-full justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                Projects
+              </span>
+              {expandedSections.projects ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </SidebarMenuButton>
+          </SidebarGroupLabel>
+          {expandedSections.projects && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Create New Project */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="text-sidebar-foreground/70">
+                    <Link to="/project/new" className="flex items-center gap-2">
+                      <SquarePlus className="w-4 h-4" />
+                      <span>New project</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                
+                {/* Projects with nested conversations */}
+                {projects.map((project) => (
+                  <SidebarMenuItem key={project.id}>
+                    <SidebarMenuButton className="font-medium text-sidebar-foreground">
+                      <FolderOpen className="w-4 h-4" />
+                      <span>{project.name}</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {project.conversations.map((conversation) => (
+                        <SidebarMenuSubItem key={conversation.id}>
+                          <SidebarMenuSubButton asChild>
+                            <Link to={conversation.url} className="flex items-center gap-2 min-w-0 flex-1">
+                              <MessageSquare className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{truncateText(conversation.title, 18)}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        <NavProjects projects={sidebarData.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser />
+        <NavUser user={sidebarData.user} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

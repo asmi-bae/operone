@@ -1,6 +1,7 @@
 // UI Components
 export * from './ui/accordion'
 export * from './ui/alert'
+export * from './ui/header'
 export * from './ui/alert-dialog'
 export * from './ui/aspect-ratio'
 export * from './ui/avatar'
@@ -68,6 +69,7 @@ export * from './ui/chart'
 // Components
 export * from './user-avatar'
 export * from './app-sidebar'
+export * from './app-header'
 export * from './breadcrumb-nav'
 export * from './nav-main'
 export * from './nav-secondary'

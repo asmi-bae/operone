@@ -18,14 +18,14 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+        <Header />
       <div className="flex flex-1">
         <div className="flex flex-1 max-w-6xl mx-auto">
           <AppSidebar />
           <main className="flex-1 bg-background overflow-auto">
             <div className="px-4 sm:px-6 py-4 sm:py-6 pb-20">
-              {children}
-            </div>
+          {children}
+        </div>
           </main>
         </div>
       </div>

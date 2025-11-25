@@ -57,12 +57,12 @@ const data: {
     { title: "Profile", url: "/dashboard", icon: User },
     { title: "Security", url: "/dashboard/security", icon: Shield },
     { title: "Sessions", url: "/dashboard/sessions", icon: Monitor },
-    
+
     { category: "Quick Access" },
     { title: "Account", url: "/dashboard/account", icon: Shield },
     { title: "Appearance", url: "/dashboard/appearance", icon: Palette },
     { title: "Notifications", url: "/dashboard/notifications", icon: Bell },
-    { title: "Passkeys", url: "/dashboard/password", icon: Key },
+    { title: "Passkeys", url: "/dashboard/passkeys", icon: Key },
 
     { category: "Account Management" },
     {
@@ -161,8 +161,7 @@ export function AppSidebar() {
 
       {/* Sidebar */}
       <div className={
-        `fixed lg:static inset-y-0 left-0 z-40 w-64 bg-background/95 backdrop-blur-sm transform transition-transform duration-200 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        `fixed lg:static inset-y-0 left-0 z-40 w-64 bg-background/95 backdrop-blur-sm transform transition-transform duration-200 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`
       }>
         <div className="h-full overflow-y-auto">
@@ -211,9 +210,8 @@ export function AppSidebar() {
                                       <button
                                         key={subItem.title}
                                         onClick={() => handleNavigation(subItem.url)}
-                                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors group ml-6 relative ${
-                                          activePath === subItem.url ? 'bg-accent/30 text-accent-foreground' : ''
-                                        }`}
+                                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors group ml-6 relative ${activePath === subItem.url ? 'bg-accent/30 text-accent-foreground' : ''
+                                          }`}
                                       >
                                         {activePath === subItem.url && (
                                           <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-full" />
@@ -231,9 +229,8 @@ export function AppSidebar() {
                           // Direct navigation item (Dashboard, Security, Sessions)
                           <button
                             onClick={() => handleNavigation(item.url)}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent/50 transition-colors group relative ${
-                              activePath === item.url ? 'bg-accent/30 text-accent-foreground' : ''
-                            }`}
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent/50 transition-colors group relative ${activePath === item.url ? 'bg-accent/30 text-accent-foreground' : ''
+                              }`}
                           >
                             {activePath === item.url && (
                               <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-full" />
@@ -259,11 +256,10 @@ export function AppSidebar() {
                         key={item.name}
                         onClick={() => handleNavigation(item.href)}
                         disabled={isSignout && isSigningOut}
-                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors group ${
-                          isDestructive 
-                            ? "hover:bg-destructive hover:text-destructive-foreground" 
+                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors group ${isDestructive
+                            ? "hover:bg-destructive hover:text-destructive-foreground"
                             : "hover:bg-accent/50"
-                        } ${(isSignout && isSigningOut) ? "opacity-50 cursor-not-allowed" : ""}`}
+                          } ${(isSignout && isSigningOut) ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isSignout && isSigningOut ? (
                           <Loader2 className="mr-3 h-4 w-4 animate-spin" />

@@ -1,149 +1,120 @@
 "use client"
 
-import * as React from "react"
 import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
   CreditCard,
   LogOut,
-  Sparkles,
-  Loader
 } from "lucide-react"
+import { Link } from "react-router-dom"
+
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts"
-import { toast } from 'react-hot-toast'
-import { NavUserSkeleton } from "@/components/nav-user-skeleton"
-import { UserAvatarWithInfo } from "@/components/user-avatar"
 
-const NavUser = () => {
-  const { user, logout } = useAuth()
-  const sidebar = useSidebar()
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
-
-  // Handle feature not implemented clicks
-  const handleNotImplemented = (feature: string) => {
-    toast.error(`${feature} not implemented!`, {
-      duration: 2000,
-    })
+export function NavUser({
+  user,
+}: {
+  user: {
+    name: string
+    email: string
+    avatar: string | null
+    initials: string
   }
+}) {
+  const { isMobile } = useSidebar()
+  const { logout } = useAuth()
 
   const handleLogout = async () => {
-    try {
-      setIsLoggingOut(true)
-      await logout()
-      toast.success('Logged out successfully')
-    } catch (error) {
-      console.error('Error during logout:', error)
-      toast.error('Logout failed, please try again')
-    } finally {
-      setIsLoggingOut(false)
-    }
+    await logout()
   }
-
-  // Add null check for user
-  if (!user) return <NavUserSkeleton />
 
   return (
     <SidebarMenu>
-      <Separator />
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <UserAvatarWithInfo user={user} />
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                <AvatarFallback className="rounded-lg">{user.initials}</AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{user.name}</span>
+                <span className="truncate text-xs">{user.email}</span>
+              </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={sidebar.isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : "right"}
             align="end"
-            sideOffset={4}>
+            sideOffset={4}
+          >
             <DropdownMenuLabel className="p-0 font-normal">
-              <UserAvatarWithInfo user={user} />
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                  <AvatarFallback className="rounded-lg">{user.initials}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{user.name}</span>
+                  <span className="truncate text-xs">{user.email}</span>
+                </div>
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Pro upgrade')}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Upgrade to Pro
+              <DropdownMenuItem asChild>
+                <a href="https://operone.vercel.app/dashboard/account" target="_blank" rel="noopener noreferrer">
+                  <BadgeCheck />
+                  Account
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="https://operone.vercel.app/dashboard/billing" target="_blank" rel="noopener noreferrer">
+                  <CreditCard />
+                  Billing
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/settings/notifications">
+                  <Bell />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Account settings')}>
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Billing')}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleNotImplemented('Notifications')}>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  className="text-red-600 focus:bg-red-50 focus:text-red-600"
-                  onSelect={(e) => e.preventDefault()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {isLoggingOut ? (
-                    <>
-                      Logging out..
-                      <Loader className="ml-2 h-4 w-4 animate-spin" />
-                    </>
-                  ) : (
-                    'Log out'
-                  )}
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will need to log in again to access your account.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleLogout}
-                    className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
-                    disabled={isLoggingOut}>
-                    {isLoggingOut ? (
-                      <>
-                        Logging out..
-                        <Loader className="ml-2 h-4 w-4 animate-spin" />
-                      </>
-                    ) : (
-                      'Log out'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
   )
 }
-
-export { NavUser }
-export default NavUser

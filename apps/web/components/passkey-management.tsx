@@ -139,68 +139,82 @@ export function PasskeyManagement() {
     }
 
     return (
-        <div className="space-y-4">
-            <Button onClick={handleRegister} disabled={isRegistering} className="w-full">
-                {isRegistering ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Registering...
-                    </>
-                ) : (
-                    <>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Passkey
-                    </>
-                )}
-            </Button>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <h3 className="font-medium">Passkeys</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Passkeys are a safer and easier replacement for passwords.
+                    </p>
+                </div>
+                <Button onClick={handleRegister} disabled={isRegistering} size="sm">
+                    {isRegistering ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Registering...
+                        </>
+                    ) : (
+                        <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Passkey
+                        </>
+                    )}
+                </Button>
+            </div>
 
             {passkeys.length === 0 ? (
-                <Card>
-                    <CardContent className="p-6 text-center text-muted-foreground">
-                        <PasskeyIcon className="mx-auto h-12 w-12 mb-2 opacity-50" />
-                        <p>No passkeys registered yet</p>
-                        <p className="text-sm">Add a passkey for passwordless authentication</p>
-                    </CardContent>
-                </Card>
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center animate-in fade-in-50">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 mb-4">
+                        <PasskeyIcon className="h-10 w-10 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold">No passkeys found</h3>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+                        You haven't created any passkeys yet. Add one to sign in without a password.
+                    </p>
+                    <Button onClick={handleRegister} disabled={isRegistering} className="mt-6" variant="outline">
+                        Create your first passkey
+                    </Button>
+                </div>
             ) : (
-                <div className="space-y-2">
-                    {passkeys.map((passkey) => (
-                        <Card key={passkey.id}>
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3 flex-1">
-                                        {getDeviceIcon(passkey.credentialDeviceType)}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium truncate">
-                                                {passkey.name || `Passkey ${passkey.credentialDeviceType}`}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Created {formatDate(passkey.createdAt)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                setEditingPasskey(passkey)
-                                                setNewName(passkey.name || '')
-                                            }}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setDeletingPasskey(passkey)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                <div className="rounded-md border">
+                    {passkeys.map((passkey, index) => (
+                        <div key={passkey.id} className={`flex items-center justify-between p-4 ${index !== passkeys.length - 1 ? 'border-b' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                                    {getDeviceIcon(passkey.credentialDeviceType)}
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <div>
+                                    <p className="font-medium">
+                                        {passkey.name || `Passkey ${passkey.credentialDeviceType}`}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Created on {formatDate(passkey.createdAt)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        setEditingPasskey(passkey)
+                                        setNewName(passkey.name || '')
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeletingPasskey(passkey)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete</span>
+                                </Button>
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}
