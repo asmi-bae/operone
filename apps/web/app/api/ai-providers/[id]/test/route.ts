@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { decryptApiKey } from '@/lib/encryption';
-import { ModelProvider } from '@repo/ai-engine';
+import { ModelProvider } from '../../../../../../../packages/operone/src';
 import type { ProviderConfig } from '@repo/types';
 
 /**

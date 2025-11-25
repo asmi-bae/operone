@@ -14,29 +14,82 @@ import {
 import { cn } from "@/lib/utils";
 import type { FileUIPart, UIMessage } from "ai";
 import {
+  BrainIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import type { ComponentProps, HTMLAttributes, ReactElement, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
 
+// Import auth context to get user image
+import { useAuth } from "@/contexts/auth-context";
+
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
+  children?: ReactNode;
 };
 
-export const Message = ({ className, from, ...props }: MessageProps) => (
-  <div
-    className={cn(
-      "group flex w-full max-w-[80%] flex-col gap-2",
-      from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
-      className
-    )}
-    {...props}
-  />
-);
+export const Message = ({ className, from, children, ...props }: MessageProps) => {
+  const { user } = useAuth();
+  
+  return (
+    <div
+      className={cn(
+        "group flex w-full max-w-[80%] flex-col gap-3",
+        from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
+        className
+      )}
+      {...props}
+    >
+      {/* Avatar */}
+      <div className={cn(
+        "flex items-center gap-2",
+        from === "user" ? "justify-end" : "justify-start"
+      )}>
+        {from === "user" ? (
+          <div className="flex items-center gap-2 order-2">
+            <span className="text-xs text-muted-foreground">You</span>
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm overflow-hidden">
+              {user?.image ? (
+                <img 
+                  src={user.image} 
+                  alt={user.name || "User"} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to user icon if image fails
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                    }
+                  }}
+                />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-white">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-sm">
+              <BrainIcon className="w-3.5 h-3.5 text-primary-foreground" />
+            </div>
+            <span className="text-xs text-muted-foreground">Operone</span>
+          </div>
+        )}
+      </div>
+      {/* Message content */}
+      {children}
+    </div>
+  );
+};
 
 export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 
@@ -48,8 +101,10 @@ export const MessageContent = ({
   <div
     className={cn(
       "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "animate-in fade-in-0 slide-in-from-bottom-2 duration-200 ease-out",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-3xl group-[.is-user]:bg-secondary group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-foreground",
+      "group-[.is-assistant]:text-foreground group-[.is-assistant]:w-full",
+      "group-[.is-user]:order-1", // Position user message content before avatar
       className
     )}
     {...props}
@@ -80,7 +135,7 @@ export const MessageAction = ({
   children,
   label,
   variant = "ghost",
-  size = "icon-sm",
+  size = "icon",
   ...props
 }: MessageActionProps) => {
   const button = (
@@ -249,7 +304,7 @@ export const MessageBranchPrevious = ({
       aria-label="Previous branch"
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
-      size="icon-sm"
+      size="icon"
       type="button"
       variant="ghost"
       {...props}
@@ -273,7 +328,7 @@ export const MessageBranchNext = ({
       aria-label="Next branch"
       disabled={totalBranches <= 1}
       onClick={goToNext}
-      size="icon-sm"
+      size="icon"
       type="button"
       variant="ghost"
       {...props}
@@ -428,6 +483,35 @@ export function MessageAttachments({
     </div>
   );
 }
+
+export type MessageLoadingProps = HTMLAttributes<HTMLDivElement> & {
+  isLoading?: boolean;
+  streamingMessage?: string;
+};
+
+export const MessageLoading = memo(({ 
+  className, 
+  isLoading = false, 
+  streamingMessage,
+  ...props 
+}: MessageLoadingProps) => {
+  if (!isLoading || streamingMessage) return null;
+  
+  return (
+    <div className={cn("flex justify-start", className)} {...props}>
+      <Message from="assistant">
+        <MessageContent>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+            <BrainIcon className="w-4 h-4" />
+            <span>thinking...</span>
+          </div>
+        </MessageContent>
+      </Message>
+    </div>
+  );
+});
+
+MessageLoading.displayName = "MessageLoading";
 
 export type MessageToolbarProps = ComponentProps<"div">;
 

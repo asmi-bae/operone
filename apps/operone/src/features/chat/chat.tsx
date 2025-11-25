@@ -1,26 +1,34 @@
-"use client";
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
-  Sparkles, Loader2
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { useAI } from "@/contexts/ai-context";
 import type { FileUIPart, ChatStatus } from "ai";
 
 // AI Component Imports
 import { ChatPromptInput } from "./prompt-input";
-import { Message, MessageContent } from "@/components/ai/message";
+import { Message, MessageContent, MessageLoading } from "@/components/ai/message";
 import { Shimmer } from "@/components/ai/shimmer";
+import { 
+  ChatLayout as ChatLayoutContainer,
+  ChatMain,
+  ChatContent,
+  ChatMessages,
+  ChatMessagesContainer,
+  ChatInputContainer,
+  ChatEmptyState,
+  ChatMessageList,
+  ChatStatusBar
+} from "./chat-layout";
 
-
-// Optimized ChatLayout Component with memoization
+// Chat Layout Props Interface
 interface ChatLayoutProps {
   className?: string;
 }
 
+
+// Main Chat Component using structured layout
 export const ChatLayout = React.memo(function ChatLayout({ 
   className
 }: ChatLayoutProps) {
@@ -28,8 +36,7 @@ export const ChatLayout = React.memo(function ChatLayout({
     messages, 
     sendMessageStreaming, 
     isLoading, 
-    streamingMessage, 
-    activeProvider 
+    streamingMessage
   } = useAI();
   
   const [input, setInput] = useState("");
@@ -99,17 +106,8 @@ export const ChatLayout = React.memo(function ChatLayout({
 
   // Memoized status display with shadcn styling patterns
   const statusDisplay = useMemo(() => {
-    if (!activeProvider) return null;
-    
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-        <span className="text-muted-foreground">Connected to {activeProvider.type}</span>
-        <span className="text-muted-foreground/60">•</span>
-        <span className="text-muted-foreground">Model: {selectedModel || "Default"}</span>
-      </div>
-    );
-  }, [activeProvider, selectedModel]);
+    return null;
+  }, []);
 
   // Memoized message count display with shadcn typography
   const messageCountDisplay = useMemo(() => (
@@ -117,111 +115,82 @@ export const ChatLayout = React.memo(function ChatLayout({
   ), [messages.length]);
 
   return (
-    <div className={cn("flex flex-col h-screen overflow-hidden bg-background", className)}>
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-0 relative">
-          {/* Content Area */}
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
-                <div className="space-y-6">
-                  {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mb-6 shadow-lg">
-                        <Sparkles className="w-8 h-8 text-primary-foreground" />
-                      </div>
-                      <h2 className="text-2xl font-semibold mb-3 text-foreground">Start a conversation</h2>
-                      <p className="text-muted-foreground mb-6 max-w-sm">
-                        Ask me anything! I'm here to help with your questions and tasks.
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {suggestionButtons.map((suggestion) => (
-                          <Button
-                            key={suggestion}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            className="text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                          >
-                            {suggestion}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 pb-4">
-                      {transformedMessages.map((message) => (
-                        <Message key={message.id} from={message.role}>
-                          <MessageContent>
-                            <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                              {message.content}
-                            </div>
-                          </MessageContent>
-                        </Message>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Loading indicator with shadcn styling */}
-                  {isLoading && !streamingMessage && (
-                    <div className="flex justify-center py-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Thinking...</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Streaming message with shadcn shimmer */}
-                  {streamingMessage && (
-                    <div className="flex justify-start">
-                      <Message from="assistant">
-                        <MessageContent>
-                          <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                            {streamingMessage}
-                          </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Shimmer>Typing...</Shimmer>
-                          </div>
-                        </MessageContent>
-                      </Message>
-                    </div>
-                  )}
-                </div>
-
-                <div ref={scrollRef} />
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Input Container with proper scrolling */}
-          <div className="flex-shrink-0 border-t border-border bg-background">
-            <div className="max-w-4xl mx-auto p-4 sm:p-6">
-              {/* Status bar with shadcn typography */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 px-1">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {statusDisplay}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {messageCountDisplay}
-                </div>
-              </div>
-
-              <ChatPromptInput
-                input={input}
-                setInput={setInput}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                onSubmit={handleSubmit}
-                status={chatStatus}
+    <ChatLayoutContainer className={className}>
+      <ChatMain>
+        <ChatContent>
+          <ChatMessages>
+            <ChatMessagesContainer>
+              {messages.length === 0 ? (
+                <ChatEmptyState
+                  icon={<Sparkles className="w-5 h-5 text-primary-foreground" />}
+                  actions={
+                    suggestionButtons.map((suggestion) => (
+                      <Button
+                        key={suggestion}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        {suggestion}
+                      </Button>
+                    ))
+                  }
+                />
+              ) : (
+                <ChatMessageList>
+                  {transformedMessages.map((message) => (
+                    <Message key={message.id} from={message.role}>
+                      <MessageContent>
+                        <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                          {message.content}
+                        </div>
+                      </MessageContent>
+                    </Message>
+                  ))}
+                </ChatMessageList>
+              )}
+              
+              {/* Optimized loading indicator */}
+              <MessageLoading 
+                isLoading={isLoading} 
+                streamingMessage={streamingMessage || undefined}
               />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              
+              {/* Streaming message with shadcn shimmer */}
+              {streamingMessage && (
+                <div className="flex justify-start">
+                  <Message from="assistant">
+                    <MessageContent>
+                      <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                        {streamingMessage}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Shimmer>Typing...</Shimmer>
+                      </div>
+                    </MessageContent>
+                  </Message>
+                </div>
+              )}
+
+              <div ref={scrollRef} />
+            </ChatMessagesContainer>
+          </ChatMessages>
+
+          <ChatInputContainer>
+            <ChatStatusBar status={statusDisplay} messageCount={messageCountDisplay} />
+            <ChatPromptInput
+              input={input}
+              setInput={setInput}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              onSubmit={handleSubmit}
+              status={chatStatus}
+            />
+          </ChatInputContainer>
+        </ChatContent>
+      </ChatMain>
+    </ChatLayoutContainer>
   );
 });
 

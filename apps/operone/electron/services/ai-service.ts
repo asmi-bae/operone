@@ -4,7 +4,7 @@ import {
   ProviderManager, 
   createDefaultConfig,
   ModelRegistry
-} from '@repo/ai-engine'
+} from '../../../../packages/operone/src'
 import type { ProviderType } from '@repo/types'
 import Store from 'electron-store'
 import path from 'path'

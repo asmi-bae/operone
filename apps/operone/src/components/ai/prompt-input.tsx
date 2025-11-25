@@ -34,10 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
   ArrowUpIcon,
+  BrainIcon,
   ImageIcon,
   Loader2Icon,
   MicIcon,
@@ -45,13 +47,21 @@ import {
   PlusIcon,
   SquareIcon,
   XIcon,
+  GlobeIcon,
+  CodeIcon,
+  FileIcon,
+  FolderIcon,
+  FileTextIcon,
+  ServerIcon,
+  TerminalIcon,
+  MapIcon,
+  MessageCircleIcon,
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   type ChangeEvent,
   type ChangeEventHandler,
   Children,
-  type ClipboardEventHandler,
   type ComponentProps,
   createContext,
   type FormEvent,
@@ -87,6 +97,7 @@ export type TextInputContext = {
   value: string;
   setInput: (v: string) => void;
   clear: () => void;
+  insertContext: (item: ContextMenuItem) => void;
 };
 
 export type PromptInputControllerProps = {
@@ -148,6 +159,24 @@ export function PromptInputProvider({
   // ----- textInput state
   const [textInput, setTextInput] = useState(initialTextInput);
   const clearInput = useCallback(() => setTextInput(""), []);
+  
+  // Create a ref to track the latest textarea for context insertion
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const insertContext = useCallback((item: ContextMenuItem) => {
+    const currentValue = textInput;
+    const newValue = currentValue + (currentValue ? ' ' : '') + '@' + item.label + ' ';
+    setTextInput(newValue);
+    
+    // Focus textarea after a short delay to ensure DOM update
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPos = newValue.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  }, [textInput]);
 
   // ----- attachments state (global when wrapped)
   const [attachements, setAttachements] = useState<
@@ -226,11 +255,12 @@ export function PromptInputProvider({
         value: textInput,
         setInput: setTextInput,
         clear: clearInput,
+        insertContext,
       },
       attachments,
       __registerFileInput,
     }),
-    [textInput, clearInput, attachments, __registerFileInput]
+    [textInput, clearInput, insertContext, attachments, __registerFileInput]
   );
 
   return (
@@ -401,11 +431,15 @@ export const PromptInputActionAddAttachments = ({
 
   return (
     <DropdownMenuItem
-      {...props}
+      className={cn(
+        "border-0 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 focus:bg-accent/50 px-3 py-2 text-sm",
+        props.className
+      )}
       onSelect={(e) => {
         e.preventDefault();
         attachments.openFileDialog();
       }}
+      {...props}
     >
       <ImageIcon className="mr-2 size-4" /> {label}
     </DropdownMenuItem>
@@ -790,6 +824,10 @@ export const PromptInputTextarea = ({
   const controller = useOptionalPromptInputController();
   const attachments = usePromptInputAttachments();
   const [isComposing, setIsComposing] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [atSymbolPosition, setAtSymbolPosition] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter") {
@@ -813,6 +851,30 @@ export const PromptInputTextarea = ({
       form?.requestSubmit();
     }
 
+    // Handle @ key press
+    if (e.key === "@" && !contextMenuOpen) {
+      const textarea = e.currentTarget;
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = textarea.value.substring(0, cursorPos);
+      
+      // Check if @ is at the start of line or preceded by space
+      const shouldShowMenu = textBeforeCursor === "" || textBeforeCursor.endsWith(" ");
+      
+      if (shouldShowMenu) {
+        const rect = textarea.getBoundingClientRect();
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+        const cursorLine = textarea.value.substring(0, cursorPos).split('\n').length - 1;
+        
+        setAtSymbolPosition(cursorPos);
+        setContextMenuPosition({
+          x: rect.left + 10,
+          y: rect.top + (cursorLine * lineHeight) + 40
+        });
+        setContextMenuOpen(true);
+        e.preventDefault();
+      }
+    }
+
     // Remove last attachment when Backspace is pressed and textarea is empty
     if (
       e.key === "Backspace" &&
@@ -825,56 +887,124 @@ export const PromptInputTextarea = ({
         attachments.remove(lastAttachment.id);
       }
     }
+    
+    // Close context menu on Escape
+    if (e.key === "Escape" && contextMenuOpen) {
+      setContextMenuOpen(false);
+      setAtSymbolPosition(null);
+    }
   };
 
-  const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = (event) => {
-    const items = event.clipboardData?.items;
-
-    if (!items) {
-      return;
-    }
-
-    const files: File[] = [];
-
-    for (const item of items) {
-      if (item.kind === "file") {
-        const file = item.getAsFile();
-        if (file) {
-          files.push(file);
-        }
+  const handleContextMenuSelect = useCallback((item: ContextMenuItem) => {
+    if (textareaRef.current && atSymbolPosition !== null) {
+      const textarea = textareaRef.current;
+      const currentValue = textarea.value;
+      const beforeAt = currentValue.substring(0, atSymbolPosition);
+      const afterAt = currentValue.substring(atSymbolPosition + 1);
+      const newValue = beforeAt + item.label + ' ' + afterAt;
+      
+      // Update the textarea value
+      if (controller) {
+        controller.textInput.setInput(newValue);
+      } else {
+        // Create a synthetic change event if not using controller
+        const syntheticEvent = {
+          target: { ...textarea, value: newValue }
+        } as ChangeEvent<HTMLTextAreaElement>;
+        onChange?.(syntheticEvent);
       }
+      
+      // Set cursor position after the inserted text
+      setTimeout(() => {
+        const newCursorPos = atSymbolPosition + item.label.length + 1;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+      }, 0);
     }
+    
+    setContextMenuOpen(false);
+    setAtSymbolPosition(null);
+  }, [atSymbolPosition, controller, onChange]);
 
-    if (files.length > 0) {
-      event.preventDefault();
-      attachments.add(files);
+  const handleBadgeClick = useCallback((item: ContextMenuItem) => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const currentValue = textarea.value;
+      const cursorPos = textarea.selectionStart;
+      const newValue = currentValue + (currentValue ? ' ' : '') + '@' + item.label + ' ';
+      
+      // Update the textarea value
+      if (controller) {
+        controller.textInput.setInput(newValue);
+      } else {
+        // Create a synthetic change event if not using controller
+        const syntheticEvent = {
+          target: { ...textarea, value: newValue }
+        } as ChangeEvent<HTMLTextAreaElement>;
+        onChange?.(syntheticEvent);
+      }
+      
+      // Set cursor position at the end
+      setTimeout(() => {
+        const newCursorPos = newValue.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+      }, 0);
+    }
+  }, [controller, onChange]);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenuOpen(false);
+    setAtSymbolPosition(null);
+  }, []);
+
+  const handleChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
+    const newValue = e.currentTarget.value;
+    const cursorPos = e.currentTarget.selectionStart;
+    
+    // Hide context menu if cursor moves away from @ position
+    if (atSymbolPosition !== null && cursorPos <= atSymbolPosition) {
+      setContextMenuOpen(false);
+      setAtSymbolPosition(null);
+    }
+    
+    if (controller) {
+      controller.textInput.setInput(newValue);
+      onChange?.(e);
+    } else {
+      onChange?.(e);
     }
   };
 
   const controlledProps = controller
     ? {
         value: controller.textInput.value,
-        onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
-          controller.textInput.setInput(e.currentTarget.value);
-          onChange?.(e);
-        },
+        onChange: handleChange,
       }
     : {
-        onChange,
+        onChange: handleChange,
       };
 
   return (
-    <InputGroupTextarea
-      className={cn("field-sizing-content max-h-48 min-h-16", className)}
-      name="message"
-      onCompositionEnd={() => setIsComposing(false)}
-      onCompositionStart={() => setIsComposing(true)}
-      onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
-      placeholder={placeholder}
-      {...props}
-      {...controlledProps}
-    />
+    <div className="relative">
+      <InputGroupTextarea
+        ref={textareaRef}
+        className={cn("field-sizing-content max-h-48 min-h-16", className)}
+        name="message"
+        onCompositionEnd={() => setIsComposing(false)}
+        onCompositionStart={() => setIsComposing(true)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        {...props}
+        {...controlledProps}
+      />
+      <ContextMenu
+        isOpen={contextMenuOpen}
+        position={contextMenuPosition}
+        onSelect={handleContextMenuSelect}
+        onClose={handleContextMenuClose}
+      />
+    </div>
   );
 };
 
@@ -919,6 +1049,86 @@ export const PromptInputTools = ({
   <div className={cn("flex items-center gap-1", className)} {...props} />
 );
 
+// ============================================================================
+// Context Badges Component
+// ============================================================================
+
+export type ContextBadgeProps = {
+  item: ContextMenuItem;
+  onClick?: () => void;
+  className?: string;
+  size?: "sm" | "md";
+};
+
+export const ContextBadge = ({ 
+  item, 
+  onClick, 
+  className, 
+  size = "sm" 
+}: ContextBadgeProps) => {
+  const sizeClasses = size === "sm" 
+    ? "px-2 py-1 text-xs gap-1" 
+    : "px-3 py-1.5 text-sm gap-2";
+  
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center rounded-full border bg-background hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer",
+        sizeClasses,
+        className
+      )}
+      title={item.description}
+    >
+      <span className="flex-shrink-0 w-3 h-3">
+        {item.icon}
+      </span>
+      <span className="font-medium">{item.label}</span>
+    </button>
+  );
+};
+
+export type ContextBadgesProps = HTMLAttributes<HTMLDivElement> & {
+  items?: ContextMenuItem[];
+  onItemClick?: (item: ContextMenuItem) => void;
+  size?: "sm" | "md";
+  maxVisible?: number;
+};
+
+export const ContextBadges = ({ 
+  items = contextMenuItems,
+  onItemClick,
+  size = "sm",
+  maxVisible = 8,
+  className,
+  ...props 
+}: ContextBadgesProps) => {
+  const visibleItems = items.slice(0, maxVisible);
+  const hasMore = items.length > maxVisible;
+  
+  return (
+    <div 
+      className={cn("flex flex-wrap items-center gap-2", className)} 
+      {...props}
+    >
+      {visibleItems.map((item) => (
+        <ContextBadge
+          key={item.id}
+          item={item}
+          size={size}
+          onClick={() => onItemClick?.(item)}
+        />
+      ))}
+      {hasMore && (
+        <div className="text-xs text-muted-foreground px-2 py-1">
+          +{items.length - maxVisible} more
+        </div>
+      )}
+    </div>
+  );
+};
+
 export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton>;
 
 export const PromptInputButton = ({
@@ -938,7 +1148,7 @@ export const PromptInputButton = ({
       variant={variant}
       {...props}
     >
-      {children}
+      {props.children}
     </InputGroupButton>
   );
 };
@@ -969,7 +1179,14 @@ export const PromptInputActionMenuContent = ({
   className,
   ...props
 }: PromptInputActionMenuContentProps) => (
-  <DropdownMenuContent align="start" className={cn(className)} {...props} />
+  <DropdownMenuContent 
+    align="start" 
+    className={cn(
+      "border-0 shadow-lg rounded-xl bg-muted/95 backdrop-blur-sm p-1 min-w-[200px] focus:outline-none focus:ring-0",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 export type PromptInputActionMenuItemProps = ComponentProps<
@@ -979,7 +1196,13 @@ export const PromptInputActionMenuItem = ({
   className,
   ...props
 }: PromptInputActionMenuItemProps) => (
-  <DropdownMenuItem className={cn(className)} {...props} />
+  <DropdownMenuItem 
+    className={cn(
+      "border-0 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 focus:bg-accent/50 px-3 py-2 text-sm",
+      className
+    )} 
+    {...props} 
+  />
 );
 
 // Note: Actions that perform side-effects (like opening a file dialog)
@@ -1193,16 +1416,19 @@ export type PromptInputSelectTriggerProps = ComponentProps<
 
 export const PromptInputSelectTrigger = ({
   className,
+  children,
   ...props
 }: PromptInputSelectTriggerProps) => (
-  <SelectTrigger
+  <SelectPrimitive.Trigger
     className={cn(
-      "border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
-      "hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
+      "border-none bg-transparent font-bold text-muted-foreground shadow-none transition-colors rounded-full",
+      "hover:bg-transparent hover:text-muted-foreground aria-expanded:bg-transparent aria-expanded:text-muted-foreground focus:outline-none focus:ring-0 text-xs w-auto min-w-[40px] max-w-[60px]",
       className
     )}
     {...props}
-  />
+  >
+    {children}
+  </SelectPrimitive.Trigger>
 );
 
 export type PromptInputSelectContentProps = ComponentProps<
@@ -1378,3 +1604,359 @@ export const PromptInputCommandSeparator = ({
 }: PromptInputCommandSeparatorProps) => (
   <CommandSeparator className={cn(className)} {...props} />
 );
+
+// ============================================================================
+// Context Menu Component for @ mentions
+// ============================================================================
+
+export type ContextMenuItem = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  description?: string;
+  keywords?: string[];
+};
+
+export type ContextMenuProps = {
+  isOpen: boolean;
+  position: { x: number; y: number } | null;
+  onSelect: (item: ContextMenuItem) => void;
+  onClose: () => void;
+  className?: string;
+};
+
+const contextMenuItems: ContextMenuItem[] = [
+  { id: 'web', label: 'Web', icon: <GlobeIcon className="w-4 h-4" />, description: 'Search the web', keywords: ['internet', 'search', 'online'] },
+  { id: 'code', label: 'Code', icon: <CodeIcon className="w-4 h-4" />, description: 'Code context', keywords: ['programming', 'dev', 'script'] },
+  { id: 'items', label: 'Items', icon: <FileIcon className="w-4 h-4" />, description: 'File items', keywords: ['files', 'documents'] },
+  { id: 'files', label: 'Files', icon: <FileTextIcon className="w-4 h-4" />, description: 'File system', keywords: ['filesystem', 'directory'] },
+  { id: 'directories', label: 'Directories', icon: <FolderIcon className="w-4 h-4" />, description: 'Folder structure', keywords: ['folders', 'paths'] },
+  { id: 'docs', label: 'Docs', icon: <FileTextIcon className="w-4 h-4" />, description: 'Documentation', keywords: ['documentation', 'readme', 'guides'] },
+  { id: 'mcp', label: 'MCP servers', icon: <ServerIcon className="w-4 h-4" />, description: 'MCP servers', keywords: ['server', 'mcp', 'service'] },
+  { id: 'rules', label: 'Rules', icon: <FileTextIcon className="w-4 h-4" />, description: 'Project rules', keywords: ['config', 'settings', 'rules'] },
+  { id: 'conversations', label: 'Conversations', icon: <MessageCircleIcon className="w-4 h-4" />, description: 'Chat history', keywords: ['chat', 'history', 'messages'] },
+  { id: 'terminal', label: 'Terminal', icon: <TerminalIcon className="w-4 h-4" />, description: 'Terminal commands', keywords: ['cmd', 'bash', 'shell'] },
+  { id: 'codemaps', label: 'Codemaps', icon: <MapIcon className="w-4 h-4" />, description: 'Code maps', keywords: ['map', 'structure', 'visual'] },
+];
+
+export const ContextMenu = ({ isOpen, position, onSelect, onClose, className }: ContextMenuProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const filteredItems = useMemo(() => {
+    if (!searchTerm) return contextMenuItems;
+    
+    const term = searchTerm.toLowerCase();
+    return contextMenuItems.filter(item => 
+      item.label.toLowerCase().includes(term) ||
+      item.description?.toLowerCase().includes(term) ||
+      item.keywords?.some(keyword => keyword.toLowerCase().includes(term))
+    );
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filteredItems]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSelectedIndex(0);
+    }
+  }, [isOpen]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isOpen) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % filteredItems.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev === 0 ? filteredItems.length - 1 : prev - 1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredItems[selectedIndex]) {
+          onSelect(filteredItems[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        onClose();
+        break;
+    }
+  }, [isOpen, filteredItems, selectedIndex, onSelect, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
+
+  if (!isOpen || !position) return null;
+
+  return (
+    <div
+      className={cn(
+        "absolute z-50 w-80 rounded-lg border bg-popover p-1 shadow-lg",
+        "animate-in fade-in-0 zoom-in-95 duration-200",
+        className
+      )}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        maxHeight: '300px',
+        overflowY: 'auto'
+      }}
+    >
+      <div className="px-2 py-1.5">
+        <input
+          type="text"
+          placeholder="Search context..."
+          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          autoFocus
+        />
+      </div>
+      <div className="max-h-60 overflow-y-auto">
+        {filteredItems.length === 0 ? (
+          <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+            No results found
+          </div>
+        ) : (
+          filteredItems.map((item, index) => (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-center gap-3 px-2 py-2 rounded-sm cursor-pointer text-sm",
+                "hover:bg-accent hover:text-accent-foreground",
+                index === selectedIndex && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => onSelect(item)}
+            >
+              <div className="flex-shrink-0 w-4 h-4 text-muted-foreground">
+                {item.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">{item.label}</div>
+                {item.description && (
+                  <div className="text-xs text-muted-foreground truncate">
+                    {item.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Model Selector Component
+// ============================================================================
+
+export type ModelCategory = "text" | "code" | "image" | "audio" | "video" | "multimodal";
+
+export type ModelInfo = {
+  id: string;
+  name: string;
+  category: ModelCategory;
+  description?: string;
+  provider?: string;
+  isPremium?: boolean;
+  isNew?: boolean;
+};
+
+export type PromptInputModelSelectorProps = {
+  models: ModelInfo[];
+  selectedModel?: string;
+  onModelChange?: (modelId: string) => void;
+  className?: string;
+  placeholder?: string;
+  maxContentHeight?: string;
+  maxContentWidth?: string;
+  showCategories?: boolean;
+  allowSorting?: boolean;
+};
+
+export const PromptInputModelSelector = ({
+  models,
+  selectedModel,
+  onModelChange,
+  className,
+  placeholder = "Select a model",
+  maxContentHeight = "400px",
+  maxContentWidth = "320px",
+  showCategories = true,
+  allowSorting = true,
+}: PromptInputModelSelectorProps) => {
+  // Group models by category
+  const modelsByCategory = useMemo(() => {
+    const grouped: Record<ModelCategory, ModelInfo[]> = {
+      text: [],
+      code: [],
+      image: [],
+      audio: [],
+      video: [],
+      multimodal: [],
+    };
+    
+    models.forEach(model => {
+      grouped[model.category].push(model);
+    });
+    
+    // Sort models within each category if enabled
+    if (allowSorting) {
+      Object.keys(grouped).forEach(category => {
+        grouped[category as ModelCategory].sort((a, b) => {
+          // Prioritize premium models, then new models, then alphabetically
+          if (a.isPremium !== b.isPremium) return b.isPremium ? 1 : -1;
+          if (a.isNew !== b.isNew) return b.isNew ? 1 : -1;
+          return a.name.localeCompare(b.name);
+        });
+      });
+    }
+    
+    return grouped;
+  }, [models, allowSorting]);
+
+  const selectedModelInfo = models.find(m => m.id === selectedModel);
+
+  const categoryLabels: Record<ModelCategory, string> = {
+    text: "Text Generation",
+    code: "Code Generation", 
+    image: "Image Generation",
+    audio: "Audio Processing",
+    video: "Video Processing",
+    multimodal: "Multimodal"
+  };
+
+  return (
+    <Select value={selectedModel} onValueChange={onModelChange}>
+      <PromptInputSelectTrigger className={cn("w-full", className)}>
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          {selectedModelInfo && (
+            <>
+              <span className="text-xs">
+                <BrainIcon className="size-3" />
+              </span>
+              <span className="truncate text-xs font-medium">
+                {selectedModelInfo.name.replace(/^.*?\s-\s/, '')}
+              </span>
+              {selectedModelInfo.isPremium && (
+                <span className="text-xs text-yellow-500">⭐</span>
+              )}
+              {selectedModelInfo.isNew && (
+                <span className="text-xs text-green-500">NEW</span>
+              )}
+            </>
+          )}
+          {!selectedModelInfo && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <BrainIcon className="size-3" /> {placeholder}
+            </span>
+          )}
+        </div>
+      </PromptInputSelectTrigger>
+      <PromptInputSelectContent 
+        className={cn(
+          "border-0 shadow-lg rounded-xl bg-background/95 backdrop-blur-sm p-0.5",
+          "max-h-[var(--radix-select-content-trigger-height)]",
+          "overflow-hidden"
+        )}
+        style={{
+          maxHeight: maxContentHeight,
+          maxWidth: maxContentWidth,
+        }}
+      >
+        <div className="max-h-full overflow-y-auto">
+          {showCategories ? (
+            // Render grouped by categories
+            Object.entries(modelsByCategory).map(([category, categoryModels]) => {
+              if (categoryModels.length === 0) return null;
+              
+              return (
+                <div key={category} className="mb-2">
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border/50">
+                    <span className="flex items-center gap-1">
+                      {categoryLabels[category as ModelCategory]}
+                      <span className="text-muted-foreground/60">({categoryModels.length})</span>
+                    </span>
+                  </div>
+                  {categoryModels.map(model => (
+                    <PromptInputSelectItem 
+                      key={model.id} 
+                      value={model.id}
+                      className="pl-5 pr-2 py-1 cursor-pointer transition-all duration-200 hover:bg-accent/50 focus:bg-accent/50 border-0"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1 min-w-0 flex-1">
+                          <span className="text-xs">🧠</span>
+                          <span className="text-xs truncate">{model.name.replace(/^.*?\s-\s/, '')}</span>
+                          {model.isPremium && (
+                            <span className="text-xs text-yellow-500 flex-shrink-0">⭐</span>
+                          )}
+                          {model.isNew && (
+                            <span className="text-xs text-green-500 flex-shrink-0">NEW</span>
+                          )}
+                        </div>
+                        {model.provider && (
+                          <span className="text-xs text-muted-foreground/70 flex-shrink-0">
+                            {model.provider}
+                          </span>
+                        )}
+                      </div>
+                      {model.description && (
+                        <div className="text-xs text-muted-foreground/70 mt-0 truncate">
+                          {model.description}
+                        </div>
+                      )}
+                    </PromptInputSelectItem>
+                  ))}
+                </div>
+              );
+            })
+          ) : (
+            // Render flat list without categories
+            models.map(model => (
+              <PromptInputSelectItem 
+                key={model.id} 
+                value={model.id}
+                className="px-2 py-1 cursor-pointer transition-all duration-200 hover:bg-accent/50 focus:bg-accent/50 border-0"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                    <span className="text-xs truncate">{model.name}</span>
+                    {model.isPremium && (
+                      <span className="text-xs text-yellow-500 flex-shrink-0">⭐</span>
+                    )}
+                    {model.isNew && (
+                      <span className="text-xs text-green-500 flex-shrink-0">NEW</span>
+                    )}
+                  </div>
+                  {model.provider && (
+                    <span className="text-xs text-muted-foreground/70 flex-shrink-0">
+                      {model.provider}
+                    </span>
+                  )}
+                </div>
+                {model.description && (
+                  <div className="text-xs text-muted-foreground/70 mt-0 truncate">
+                    {model.description}
+                  </div>
+                )}
+              </PromptInputSelectItem>
+            ))
+          )}
+        </div>
+      </PromptInputSelectContent>
+    </Select>
+  );
+};

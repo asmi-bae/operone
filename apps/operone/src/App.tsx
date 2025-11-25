@@ -7,9 +7,10 @@ import { LoginScreen } from './components/auth/login-screen'
 import { AppLayout } from './components/layout/app-layout'
 import faviconUrl from './assets/favicon.ico'
 import './App.css'
+import { Loader } from './components/ai/loader'
 
 // Lazy load feature components
-const ChatInterface = lazy(() => import('./features/chat/chat-interface').then(module => ({ default: module.ChatInterface })))
+const ChatInterface = lazy(() => import('./features/chat/chat').then(module => ({ default: module.default })))
 const SettingsPanel = lazy(() => import('./features/settings/settings-panel').then(module => ({ default: module.SettingsPanel })))
 const MemoryInspector = lazy(() => import('./features/memory/memory-inspector').then(module => ({ default: module.MemoryInspector })))
 const AddModelPage = lazy(() => import('./features/settings/add-model-page').then(module => ({ default: module.AddModelPage })))
@@ -17,7 +18,7 @@ const AddModelPage = lazy(() => import('./features/settings/add-model-page').the
 function LoadingSpinner() {
     return (
         <div className="h-full w-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+           <Loader />
         </div>
     )
 }
