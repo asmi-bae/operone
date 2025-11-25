@@ -5,7 +5,7 @@ import {
   AvatarImage,
 } from "./ui/avatar"
 import { Skeleton } from "./ui/skeleton"
-import { cn } from "../lib/utils"
+import { cn } from "./lib/utils"
 
 interface UserAvatarSkeletonProps {
   className?: string
