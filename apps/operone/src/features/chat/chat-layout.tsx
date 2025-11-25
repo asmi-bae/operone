@@ -70,7 +70,7 @@ export interface ChatInputContainerProps {
 }
 
 export const ChatInputContainer = ({ children, className }: ChatInputContainerProps) => (
-  <div className={cn("flex-shrink-0 border-t border-border bg-background", className)}>
+  <div className={cn("flex-shrink-0 bg-background", className)}>
     <div className="max-w-lg mx-auto p-2 sm:p-3">
       {children}
     </div>

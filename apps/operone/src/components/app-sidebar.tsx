@@ -3,7 +3,6 @@ import { Command, MessageSquare, FolderOpen, ChevronRight, ChevronDown, Plus } f
 import { Link, useLocation } from "react-router-dom"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -24,7 +23,6 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts"
 import { useProject } from "@/contexts/project-context"
-import { CreateProjectDialog } from "@/components/project/create-project-dialog"
 import { commonNavItems, quickActions, truncateText } from "@/components/app-navigation"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -273,20 +271,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           )}
         </SidebarGroup>
-
-        {/* <NavProjects projects={sidebarData.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={sidebarData.user} />
       </SidebarFooter>
       <SidebarRail />
-      
-      {/* Create Project Dialog */}
-      <CreateProjectDialog
-        open={createProjectDialogOpen}
-        onOpenChange={setCreateProjectDialogOpen}
-        onSuccess={handleCreateProject}
-      />
     </Sidebar>
   )
 }
