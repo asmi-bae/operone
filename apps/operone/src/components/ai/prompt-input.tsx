@@ -932,12 +932,14 @@ export const PromptInputButton = ({
 
   return (
     <InputGroupButton
-      className={cn(className)}
+      className={cn("rounded-full", className)}
       size={newSize}
       type="button"
       variant={variant}
       {...props}
-    />
+    >
+      {children ?? <PlusIcon className="size-4" />}
+    </InputGroupButton>
   );
 };
 
