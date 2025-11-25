@@ -11,6 +11,7 @@ import './App.css'
 const ChatInterface = lazy(() => import('./features/chat/chat-interface').then(module => ({ default: module.ChatInterface })))
 const SettingsPanel = lazy(() => import('./features/settings/settings-panel').then(module => ({ default: module.SettingsPanel })))
 const MemoryInspector = lazy(() => import('./features/memory/memory-inspector').then(module => ({ default: module.MemoryInspector })))
+const AddModelPage = lazy(() => import('./features/settings/add-model-page').then(module => ({ default: module.AddModelPage })))
 
 function LoadingSpinner() {
     return (
@@ -54,6 +55,7 @@ function AppContent() {
                     <Route path="/settings/account" element={<SettingsPanel />} />
                     <Route path="/settings/billing" element={<SettingsPanel />} />
                     <Route path="/settings/notifications" element={<SettingsPanel />} />
+                    <Route path="/settings/models/add" element={<AddModelPage />} />
                     <Route path="/settings" element={<Navigate to="/settings/account" replace />} />
                     <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
                     <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
