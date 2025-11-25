@@ -145,9 +145,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupLabel>
           {expandedSections.chats && (
             <SidebarGroupContent>
-              <div className="max-h-64 overflow-y-auto">
+              <div className="max-h-64 overflow-y-auto border-l-2 border-border pl-2">
                 <SidebarMenu>
-                  {conversations.map((conversation, index) => (
+                  {conversations.map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>
                       <SidebarMenuButton asChild>
                         <Link to={conversation.url} className="flex items-center justify-between w-full">
@@ -160,9 +160,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           )}
                         </Link>
                       </SidebarMenuButton>
-                      {index < conversations.length - 1 && (
-                        <div className="border-t border-border mx-2 my-1" />
-                      )}
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
