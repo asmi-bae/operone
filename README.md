@@ -1,249 +1,418 @@
-# Operon - Full Stack OAuth Project
+# Operone - AI-Powered Desktop & Web Platform
 
-A monorepo project featuring a Next.js web application with OAuth authentication (Google, GitHub, Passkey) and an Electron desktop application with deep-link authentication flow.
+A modern monorepo featuring AI-integrated applications with robust authentication, comprehensive UI components, and cross-platform support.
+
+## 🌟 Overview
+
+Operone is a full-stack platform that combines web and desktop applications with AI capabilities, built with modern technologies and best practices. The project includes a Next.js web application, Electron desktop app, documentation site, and a comprehensive AI/MCP integration system.
 
 ## 🏗️ Project Structure
 
 ```
 operone/
 ├── apps/
-│   ├── web/          # Next.js web app with OAuth
-│   └── operone/       # Electron desktop app
+│   ├── web/              # Next.js web app with OAuth & WebAuthn
+│   ├── operone/          # Electron desktop app with deep-link auth
+│   └── docs/             # Documentation & component showcase
 ├── packages/
-│   ├── ui/           # Shared UI components
-│   ├── eslint-config/
-│   └── typescript-config/
-└── turbo.json        # Turborepo configuration
+│   ├── eslint-config/    # Shared ESLint configurations
+│   ├── mcp/              # Model Context Protocol tools
+│   ├── operone/          # Core AI & reasoning engine
+│   ├── types/            # Shared TypeScript types
+│   └── typescript-config/ # Shared TypeScript configs
+├── tests/
+│   ├── e2e/              # End-to-end tests
+│   └── integration/      # Integration tests
+└── python/               # Python connectors and models (planned)
 ```
 
 ## 🚀 Features
 
-### Web App (`apps/web`)
-- ✅ Next.js 16 with App Router
-- ✅ NextAuth v5 (Auth.js) with Prisma adapter
-- ✅ OAuth Providers:
-  - Google OAuth
-  - GitHub OAuth
-  - Passkey/WebAuthn (Coming Soon)
-- ✅ Shadcn UI components
-- ✅ Tailwind CSS v3
-- ✅ PostgreSQL database with Prisma ORM
-- ✅ Beautiful gradient UI design
-- ✅ Session management
-- ✅ Deep-link support for desktop app
+### Web Application (`apps/web`)
+- ✅ **Next.js 16** with App Router
+- ✅ **Advanced Authentication**: OAuth (Google, GitHub) + WebAuthn/Passkey
+- ✅ **Session Management**: Secure token handling and persistence
+- ✅ **Modern UI**: 55+ shadcn/ui components with Tailwind CSS
+- ✅ **Database**: PostgreSQL with Prisma ORM
+- ✅ **Security**: Encryption utilities, API error handling
+- ✅ **Testing**: Playwright e2e tests, comprehensive error boundaries
 
-### Desktop App (`apps/operone`)
-- ✅ Electron 34 with Vite
-- ✅ React 19 with TypeScript
-- ✅ Deep-link protocol handler (`operone://`)
-- ✅ Browser-based authentication flow
-- ✅ Secure token storage
-- ✅ Modern gradient UI
-- ✅ Cross-platform support (macOS, Windows, Linux)
+### Desktop Application (`apps/operone`)
+- ✅ **Electron 34** with Vite for fast development
+- ✅ **React 19** with TypeScript
+- ✅ **Deep-Link Protocol**: `operone://` for seamless auth flow
+- ✅ **Browser Authentication**: Secure OAuth integration
+- ✅ **Cross-Platform**: macOS, Windows, Linux support
+- ✅ **Modern UI**: Consistent design system with web app
+
+### Documentation Site (`apps/docs`)
+- ✅ **Component Library**: Live showcase of 55+ UI components
+- ✅ **Interactive Demos**: Real-time component experimentation
+- ✅ **Development Guide**: Usage examples and best practices
+- ✅ **Responsive Design**: Mobile-friendly documentation
+
+### AI & MCP Integration (`packages/`)
+- ✅ **Model Provider**: Unified AI model interface
+- ✅ **RAG System**: Retrieval-Augmented Generation capabilities
+- ✅ **Memory Management**: Persistent context and learning
+- ✅ **MCP Tools**: File, Shell, and Log tools for AI agents
+- ✅ **Reasoning Engine**: Advanced decision-making systems
 
 ## 📋 Prerequisites
 
-- Node.js >= 18
-- pnpm 9.0.0
-- PostgreSQL database (for web app)
+- **Node.js** >= 18
+- **pnpm** 9.0.0
+- **PostgreSQL** (for web app authentication)
+- **Git** for version control
 
-## 🛠️ Setup Instructions
+## 🛠️ Quick Start
 
-### 1. Install Dependencies
+### 1. Clone & Install
 
 ```bash
-# Install all dependencies
+git clone <repository-url>
+cd operone
 pnpm install
 ```
 
-### 2. Configure Web App Environment
+### 2. Environment Setup
 
-Create or update `apps/web/.env`:
+Create environment files:
 
 ```bash
-# Database (PostgreSQL)
+# Web app environment
+cp apps/web/.env.example apps/web/.env
+
+# Documentation environment
+cp apps/docs/.env.example apps/docs/.env
+```
+
+Configure `apps/web/.env`:
+
+```bash
+# Database
 DATABASE_URL="postgresql://user:password@localhost:5432/operone"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="generate-with-openssl-rand-base64-32"
+NEXTAUTH_SECRET="your-secret-key"
 
-# Google OAuth
+# OAuth Providers
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# GitHub OAuth
 GITHUB_CLIENT_ID="your-github-client-id"
 GITHUB_CLIENT_SECRET="your-github-client-secret"
 ```
 
-### 3. Setup Database
+### 3. Database Setup
 
 ```bash
 cd apps/web
-
-# Generate Prisma client
 npx prisma generate
-
-# Run migrations
 npx prisma migrate dev --name init
-
-# (Optional) Open Prisma Studio
-npx prisma studio
+npx prisma studio  # Optional: View database
 ```
 
-### 4. Get OAuth Credentials
-
-#### Google OAuth
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
-6. Copy Client ID and Client Secret to `.env`
-
-#### GitHub OAuth
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Create a new OAuth App
-3. Set Homepage URL: `http://localhost:3000`
-4. Set Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
-5. Copy Client ID and Client Secret to `.env`
-
-## 🎯 Running the Applications
-
-### Development Mode
+### 4. Start Development
 
 ```bash
-# Run all apps in development mode
+# Run all applications
 pnpm dev
 
 # Or run individually:
-
-# Web app only (port 3000)
-cd apps/web && pnpm dev
-
-# Desktop app only
-cd apps/operone && pnpm dev
+pnpm dev:web        # Web app (http://localhost:3000)
+pnpm dev:desktop    # Desktop app
+pnpm dev:docs       # Documentation (http://localhost:3001)
 ```
 
-### Production Build
+## 🔐 Authentication System
 
-```bash
-# Build all apps
-pnpm build
+### Web Application Flow
+1. Visit `http://localhost:3000/login`
+2. Choose OAuth provider (Google/GitHub) or Passkey
+3. Complete authentication flow
+4. Redirect to dashboard with secure session
 
-# Build web app
-cd apps/web && pnpm build
+### Desktop Application Flow
+1. Launch Operone desktop app
+2. Click "Sign In" → Opens browser
+3. Complete OAuth authentication in browser
+4. Deep-link redirect: `operone://auth?token=...`
+5. Secure token storage in desktop app
 
-# Build desktop app
-cd apps/operone && pnpm electron:build
+### WebAuthn/Passkey Support
+- Hardware security key integration
+- Biometric authentication (Face ID, Touch ID)
+- Passwordless login experience
+- Cross-device synchronization
+
+## 🎨 UI Component System
+
+### Available Components (55+)
+- **Forms**: Button, Input, Select, Checkbox, Radio, Switch
+- **Layout**: Card, Sheet, Sidebar, Separator, Scroll Area
+- **Navigation**: Tabs, Breadcrumb, Menubar, Command
+- **Feedback**: Dialog, Alert, Toast, Popover, Tooltip
+- **Data Display**: Table, Badge, Avatar, Chart, Calendar
+- **Advanced**: Data Table, Carousel, Resizable, Sidebar
+
+### Usage Example
+
+```tsx
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
+
+export default function MyComponent() {
+  return (
+    <Card className="w-96">
+      <CardHeader>
+        <CardTitle>Welcome to Operone</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button variant="default">Get Started</Button>
+        <Button variant="outline">Learn More</Button>
+      </CardContent>
+    </Card>
+  )
+}
 ```
 
-## 🔐 Authentication Flow
+## 🤖 AI & MCP Features
 
-### Web App Flow
-1. User visits `http://localhost:3000/login`
-2. Clicks "Continue with Google" or "Continue with GitHub"
-3. Completes OAuth flow
-4. Redirected to `/dashboard` with session
+### Model Provider Integration
+```typescript
+import { ModelProvider } from '@repo/operone'
 
-### Desktop App Flow
-1. User opens Operon Desktop app
-2. Clicks "Sign In" button
-3. Browser opens to `http://localhost:3000/login?from=desktop`
-4. User completes OAuth authentication
-5. Browser redirects to `operone://auth?token=...`
-6. Desktop app receives token via deep link
-7. Token stored securely in app
+const provider = new ModelProvider({
+  provider: 'openai',
+  model: 'gpt-4',
+  apiKey: process.env.OPENAI_API_KEY
+})
+
+const response = await provider.generate({
+  prompt: 'Hello, Operone!',
+  context: [...]
+})
+```
+
+### MCP Tools
+- **FileTool**: File system operations
+- **ShellTool**: Command execution
+- **LogTool**: Log analysis and monitoring
+
+### RAG System
+- Document indexing and retrieval
+- Vector similarity search
+- Context-aware responses
 
 ## 📱 Deep Link Protocol
 
-The desktop app registers the `operone://` protocol handler:
+The desktop app registers custom protocol handlers:
 
-- **Auth callback**: `operone://auth?token=<jwt-token>`
-- **Platform support**: macOS, Windows, Linux
-
-## 🎨 UI Design
-
-Both applications feature:
-- Modern gradient backgrounds
-- Glassmorphism effects
-- Smooth animations
-- Responsive layouts
-- Dark mode ready
-- Premium aesthetics
-
-## 📦 Tech Stack
-
-### Web App
-- **Framework**: Next.js 16
-- **Auth**: NextAuth v5 (Auth.js)
-- **Database**: PostgreSQL + Prisma
-- **UI**: Shadcn UI + Tailwind CSS
-- **Language**: TypeScript
-
-### Desktop App
-- **Framework**: Electron 34
-- **Frontend**: React 19 + Vite
-- **Storage**: electron-store
-- **Language**: TypeScript
+- **Authentication**: `operone://auth?token=<jwt>`
+- **Actions**: `operone://action?type=<type>&data=<data>`
+- **Platform Support**: macOS, Windows, Linux
 
 ## 🔧 Development Tools
 
-- **Monorepo**: Turborepo
-- **Package Manager**: pnpm
-- **Linting**: ESLint
-- **Type Checking**: TypeScript
+### Monorepo Management
+- **Turborepo**: Fast builds and caching
+- **pnpm Workspaces**: Efficient dependency management
+- **Changesets**: Version management and publishing
 
-## 📝 Available Scripts
+### Code Quality
+- **ESLint**: Consistent code style
+- **TypeScript**: Static type checking
+- **Prettier**: Code formatting
+- **Vitest**: Unit testing
+- **Playwright**: E2E testing
+
+### Available Scripts
 
 ```bash
 # Development
-pnpm dev              # Run all apps in dev mode
+pnpm dev              # Run all apps
+pnpm dev:web          # Web app only
+pnpm dev:desktop      # Desktop app only
+pnpm dev:docs         # Documentation only
+
+# Building
 pnpm build            # Build all apps
+pnpm build:web        # Web app production build
+pnpm build:desktop    # Desktop app build
+pnpm build:docs       # Documentation build
+
+# Testing
+pnpm test             # Run all tests
+pnpm test:unit        # Unit tests
+pnpm test:e2e         # End-to-end tests
+pnpm test:coverage    # Coverage reports
+
+# Code Quality
 pnpm lint             # Lint all packages
-pnpm check-types      # Type check all packages
-
-# Web App
-cd apps/web
-pnpm dev              # Start dev server (port 3000)
-pnpm build            # Build for production
-pnpm start            # Start production server
-
-# Desktop App
-cd apps/operone
-pnpm dev              # Start Electron in dev mode
-pnpm electron:build   # Build desktop app
+pnpm check-types      # Type checking
+pnpm format           # Format code
 ```
 
-## 🐛 Troubleshooting
+## 🌐 Architecture
 
-### Database Connection Issues
-- Ensure PostgreSQL is running
-- Check `DATABASE_URL` in `.env`
-- Run `npx prisma migrate dev`
+### Technology Stack
 
-### OAuth Errors
+#### Frontend
+- **React 19**: Latest React features
+- **Next.js 16**: Full-stack framework
+- **TypeScript**: Type safety
+- **Tailwind CSS**: Utility-first styling
+- **shadcn/ui**: Component library
+
+#### Backend
+- **Node.js**: Runtime environment
+- **PostgreSQL**: Primary database
+- **Prisma**: Database ORM
+- **NextAuth**: Authentication
+- **Electron**: Desktop framework
+
+#### AI/ML
+- **OpenAI API**: GPT models
+- **MCP Protocol**: Tool integration
+- **Vector DB**: Embedding storage
+- **RAG Pipeline**: Document processing
+
+### Security Features
+- JWT token authentication
+- OAuth 2.0 integration
+- WebAuthn/Passkey support
+- Encryption utilities
+- Secure token storage
+- CORS protection
+- Rate limiting
+
+## 📊 Testing Strategy
+
+### Unit Tests
+- Component testing with Vitest
+- Utility function testing
+- API endpoint testing
+- Coverage reporting
+
+### Integration Tests
+- Database operations
+- Authentication flows
+- API integration
+- Cross-package functionality
+
+### E2E Tests
+- User journey testing
+- Cross-browser testing
+- Mobile responsiveness
+- Desktop app functionality
+
+## 🚀 Deployment
+
+### Web Application
+```bash
+# Build for production
+pnpm build:web
+
+# Deploy to Vercel (recommended)
+vercel --prod
+
+# Or other platforms
+# Netlify, Railway, DigitalOcean, etc.
+```
+
+### Desktop Application
+```bash
+# Build distributables
+pnpm build:desktop
+
+# Outputs:
+# - dist/ (Web build)
+# - dist-electron/ (Electron build)
+# - Installer packages for each platform
+```
+
+### Documentation
+```bash
+# Build static docs
+pnpm build:docs
+
+# Deploy to Vercel/Netlify
+vercel --prod
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### Database Connection
+```bash
+# Check PostgreSQL status
+brew services list | grep postgresql  # macOS
+sudo systemctl status postgresql       # Linux
+
+# Reset database
+npx prisma migrate reset
+```
+
+#### OAuth Setup
 - Verify redirect URIs match exactly
-- Check client ID and secret
+- Check client ID and secrets
 - Ensure OAuth apps are enabled
+- Test with OAuth playground tools
 
-### Desktop App Deep Link Not Working
-- On macOS: App must be built and installed
-- On Windows: Run as administrator first time
-- On Linux: Check protocol handler registration
+#### Desktop Deep Links
+- **macOS**: App must be built and installed
+- **Windows**: Run as administrator first time
+- **Linux**: Check protocol handler registration
+
+#### Development Issues
+```bash
+# Clear caches
+pnpm store prune
+rm -rf .turbo
+rm -rf node_modules
+pnpm install
+
+# Reset database
+npx prisma migrate reset
+```
 
 ## 🤝 Contributing
 
-This is a monorepo managed with Turborepo and pnpm workspaces.
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** changes: `git commit -m 'Add amazing feature'`
+4. **Push** to branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
+
+### Development Guidelines
+- Follow existing code patterns
+- Add tests for new features
+- Update documentation
+- Use semantic commit messages
+- Ensure all tests pass
 
 ## 📄 License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Next.js team for the amazing framework
-- Auth.js (NextAuth) for authentication
-- Shadcn for beautiful UI components
-- Electron team for desktop capabilities
+- **Next.js Team** - Amazing framework
+- **Auth.js** - Authentication solution
+- **shadcn/ui** - Beautiful components
+- **Electron** - Desktop capabilities
+- **Vercel** - Hosting platform
+- **OpenAI** - AI models
+- **MCP Community** - Protocol development
+
+## 📞 Support
+
+- **Documentation**: [Visit docs site](http://localhost:3001)
+- **Issues**: [GitHub Issues](https://github.com/your-org/operone/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/operone/discussions)
+- **Community**: [Discord Server](https://discord.gg/your-server)
+
+---
+
+**Built with ❤️ by the Operone team**
