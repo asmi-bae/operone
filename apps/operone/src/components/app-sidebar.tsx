@@ -1,9 +1,8 @@
 import * as React from "react"
-import { Command, MessageSquare, ChevronDown, MoreVertical, Trash2, Pencil } from "lucide-react"
+import { Command, MessageSquare, Trash2, Pencil } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useCallback } from "react"
 
-import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -20,12 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -69,21 +62,46 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => window.removeEventListener('resize', handleResize)
   }, [handleResize])
 
-  // Optimized data structure like ChatGPT
-  const [expandedSections, setExpandedSections] = React.useState({
-    chats: false
-  })
+  // Remove expanded sections state - all chats are always visible
 
-  // Toggle section with useCallback
-  const toggleSection = React.useCallback((section: 'chats') => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
+  // Categorize chats by time
+  const categorizeChats = React.useCallback((chats: any[]) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+    const categories = {
+      today: [] as any[],
+      yesterday: [] as any[],
+      thisWeek: [] as any[],
+      thisMonth: [] as any[],
+      older: [] as any[]
+    };
+
+    chats.forEach(chat => {
+      const chatDate = new Date(chat.updatedAt);
+      if (chatDate >= today) {
+        categories.today.push(chat);
+      } else if (chatDate >= yesterday) {
+        categories.yesterday.push(chat);
+      } else if (chatDate >= lastWeek) {
+        categories.thisWeek.push(chat);
+      } else if (chatDate >= lastMonth) {
+        categories.thisMonth.push(chat);
+      } else {
+        categories.older.push(chat);
+      }
+    });
+
+    return categories;
   }, []);
 
-  // Get chats not associated with any project (general chats)
-  const generalChats = chats
+  const categorizedChats = React.useMemo(() => categorizeChats(chats), [chats, categorizeChats]);
 
   // Handle creating a new chat (with error handling)
   const handleCreateNewChat = React.useCallback(async () => {
@@ -242,90 +260,92 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <NavMain items={sidebarData.navMain} />
-
-        {/* Chats Section */}
+        {/* Chats Section - Always Expanded */}
         <SidebarGroup className="group-data-[collapsible=icon]:hidden gap-0 py-1">
           <SidebarGroupLabel className="px-0">
-            <SidebarMenuButton
-              onClick={() => toggleSection('chats')}
-              className="w-full justify-between"
-              tooltip="Chats"
-            >
-              <span className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Chats</span>
-              </span>
-              <ChevronDown className="w-4 h-4 group-data-[collapsible=icon]:hidden" />
-            </SidebarMenuButton>
+            <div className="flex items-center gap-2 px-2 py-1">
+              <MessageSquare className="w-4 h-4" />
+              <span className="group-data-[collapsible=icon]:hidden font-medium">All Chats</span>
+            </div>
           </SidebarGroupLabel>
-          {expandedSections.chats && (
-            <SidebarGroupContent>
-              <div className="max-h-64 overflow-y-auto">
-                <SidebarMenu>
-                  {generalChats.map((chat) => (
-                    <SidebarMenuItem key={chat.id}>
-                      <div className="flex items-center justify-between w-full group">
-                        <SidebarMenuButton
-                          asChild
-                          className={cn(
-                            "flex-1",
-                            currentChat?.id === chat.id && "bg-accent text-accent-foreground"
-                          )}
-                          tooltip={truncateText(chat.title, 20)}
-                        >
-                          <button
-                            onClick={() => handleSelectChat(chat)}
-                            className="flex items-center gap-2 w-full"
-                          >
-                            <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate group-data-[collapsible=icon]:hidden">{truncateText(chat.title, 20)}</span>
-                          </button>
-                        </SidebarMenuButton>
-                        <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-                          <span className="text-xs text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {chat.updatedAt.toLocaleDateString()}
-                          </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+          <SidebarGroupContent>
+            <div className="max-h-96 overflow-y-auto">
+              {Object.entries(categorizedChats).map(([category, categoryChats]) => {
+                if (categoryChats.length === 0) return null;
+                
+                const getCategoryTitle = (cat: string) => {
+                  switch(cat) {
+                    case 'today': return 'Today';
+                    case 'yesterday': return 'Yesterday';
+                    case 'thisWeek': return 'This Week';
+                    case 'thisMonth': return 'This Month';
+                    case 'older': return 'Older';
+                    default: return cat;
+                  }
+                };
+
+                return (
+                  <div key={category} className="mb-4">
+                    <div className="px-2 py-1 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+                      {getCategoryTitle(category)} ({categoryChats.length})
+                    </div>
+                    <SidebarMenu>
+                      {categoryChats.map((chat) => (
+                        <SidebarMenuItem key={chat.id}>
+                          <div className="flex items-center justify-between w-full group hover:bg-muted rounded-md transition-colors duration-200 px-2">
+                            <SidebarMenuButton
+                              asChild
+                              className={cn(
+                                "flex-1",
+                                currentChat?.id === chat.id && "bg-accent text-accent-foreground",
+                                "group-hover:bg-transparent"
+                              )}
+                              tooltip={truncateText(chat.title, 20)}
+                            >
                               <button
-                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-muted rounded-md bg-muted flex items-center justify-center"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={() => handleSelectChat(chat)}
+                                className="flex items-center gap-2 w-full"
                               >
-                                <MoreVertical className="w-4 h-4" />
+                                <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                                <span className="truncate group-data-[collapsible=icon]:hidden">{truncateText(chat.title, 20)}</span>
                               </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
+                            </SidebarMenuButton>
+                            <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  openRenameDialog(chat)
+                                  e.stopPropagation();
+                                  openRenameDialog(chat);
                                 }}
-                                className="flex items-center gap-2 cursor-pointer hover:bg-muted"
+                                className="p-1 hover:bg-background rounded-md flex items-center justify-center transition-colors duration-200"
+                                title="Rename chat"
                               >
-                                <Pencil className="w-4 h-4" />
-                                <span>Rename</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteChat(chat)
+                                  e.stopPropagation();
+                                  handleDeleteChat(chat);
                                 }}
-                                className="flex items-center gap-2 text-destructive cursor-pointer hover:bg-muted"
+                                className="p-1 hover:bg-background rounded-md flex items-center justify-center text-destructive transition-colors duration-200 mr-2"
+                                title="Delete chat"
                               >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Delete</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </div>
-            </SidebarGroupContent>
-          )}
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </div>
+                );
+              })}
+              {chats.length === 0 && (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  No chats yet. Start a new conversation!
+                </div>
+              )}
+            </div>
+          </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>

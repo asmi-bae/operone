@@ -4,7 +4,7 @@ import {
   SquarePlus,
   Search,
   Library,
-  Settings,
+  Settings2,
 } from "lucide-react"
 
 // Common navigation items for all roles
@@ -41,7 +41,7 @@ export const quickActions = [
   {
     title: "Settings",
     url: "/settings",
-    icon: Settings,
+    icon: Settings2,
   },
 ]
 
