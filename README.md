@@ -1,4 +1,4 @@
-# Operone - AI-Powered Desktop & Web Platform
+[v](README.md)# Operone - AI-Powered Desktop & Web Platform
 
 A modern monorepo featuring AI-integrated applications with robust authentication, comprehensive UI components, and cross-platform support.
 
