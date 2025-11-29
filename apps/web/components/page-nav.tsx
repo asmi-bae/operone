@@ -259,7 +259,9 @@ export function AppSidebar() {
                         onClick={() => handleNavigation(item.href)}
                         disabled={isSignout && isSigningOut}
                         className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors group ${isDestructive
-                          ? "hover:bg-destructive hover:text-destructive-foreground"
+                          ? isSignout 
+                            ? "hover:bg-destructive/80 hover:text-foreground" 
+                            : "hover:bg-destructive hover:text-destructive-foreground"
                           : "hover:bg-accent/50"
                           } ${(isSignout && isSigningOut) ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
