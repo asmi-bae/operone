@@ -6,7 +6,39 @@ import * as fs from 'fs';
 import { NetworkTopology, TopologyNode, NetworkStats } from './NetworkTopology';
 import { QoSManager, QoSMetrics } from './QoSManager';
 
-// ... existing interfaces ...
+// Type Definitions
+export interface PeerNetworkConfig {
+  peerId: string;
+  peerName: string;
+  port?: number;
+  maxPeers?: number;
+  enableTLS?: boolean;
+  tlsKey?: string;
+  tlsCert?: string;
+  jwtSecret?: string;
+  enableMessageSigning?: boolean;
+  signingKey?: string;
+  heartbeatInterval?: number;
+}
+
+export interface ConnectedPeer {
+  id: string;
+  name: string;
+  ws: WebSocket;
+  authenticated: boolean;
+  lastHeartbeat: number;
+  capabilities: string[];
+  tools: string[];
+}
+
+export interface PeerMessage {
+  type: string;
+  from: string;
+  to?: string;
+  data: any;
+  timestamp: number;
+  signature?: string;
+}
 
 export class PeerNetwork extends EventEmitter {
   private config: PeerNetworkConfig;
