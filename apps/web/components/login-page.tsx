@@ -123,7 +123,16 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center">
             <Card className="w-full border-none bg-transparent shadow-none max-w-md mx-4">
-                <CardHeader className="space-y-1">
+                <CardHeader className="space-y-4">
+                    <div className="flex justify-center">
+                        <Image
+                            src="/icons/operone-logo.svg"
+                            alt="Operone Logo"
+                            width={80}
+                            height={80}
+                            className="h-20 w-auto"
+                        />
+                    </div>
                     <CardTitle className="text-2xl font-bold text-center">
                         Welcome to Operone
                     </CardTitle>

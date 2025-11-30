@@ -14,16 +14,17 @@ export async function GET() {
             orderBy: { lastActivity: 'desc' }
         })
 
-        // We can't easily determine the current session without comparing session tokens
-        // For now, we'll mark the most recent one as current or none
-        const formattedSessions = sessions.map((s, index) => ({
+        // Get current session token to identify current session
+        const currentSessionToken = session.sessionToken
+
+        const formattedSessions = sessions.map((s: typeof sessions[0]) => ({
             id: s.id,
             userAgent: s.userAgent,
             ipAddress: s.ipAddress,
             deviceName: s.deviceName,
             lastActivity: s.lastActivity.toISOString(),
             createdAt: s.createdAt.toISOString(),
-            isCurrent: index === 0 // Simple heuristic: most recent is current
+            isCurrent: s.sessionToken === currentSessionToken
         }))
 
         return NextResponse.json({ sessions: formattedSessions })

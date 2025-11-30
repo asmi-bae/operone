@@ -6,17 +6,30 @@ interface WorkerTask {
   id: string;
   type: string;
   payload: any;
+  priority: number;
   resolve: (value: any) => void;
   reject: (reason?: any) => void;
+  timeout?: number;
+  retries: number;
+  maxRetries: number;
+}
+
+interface PendingTask {
+  task: WorkerTask;
+  workerIndex: number;
+  startTime: number;
+  timeoutHandle?: NodeJS.Timeout;
 }
 
 export class WorkerPool {
   private workers: Worker[] = [];
   private taskQueue: WorkerTask[] = [];
   private activeWorkers: Map<number, boolean> = new Map(); // worker index -> busy
+  private pendingTasks: Map<string, PendingTask> = new Map(); // taskId -> pending task info
   private maxWorkers: number;
   private workerScript: string;
   private eventBus: EventBus;
+  private defaultTimeout: number = 30000; // 30 seconds default timeout
 
   constructor(maxWorkers: number = 4, workerScriptPath?: string) {
     this.maxWorkers = maxWorkers;
@@ -59,13 +72,14 @@ export class WorkerPool {
         worker.on('error', (err) => {
             console.error(`Worker ${index} error:`, err);
             this.eventBus.publish('system', 'worker:error', { workerId: index, error: err.message });
-            // Restart worker?
+            this.handleWorkerError(index, err);
         });
 
         worker.on('exit', (code) => {
             if (code !== 0) {
                 console.error(`Worker ${index} stopped with exit code ${code}`);
                 this.eventBus.publish('system', 'worker:exit', { workerId: index, code });
+                this.handleWorkerExit(index, code);
             }
         });
 
@@ -77,33 +91,138 @@ export class WorkerPool {
   }
 
   private handleWorkerMessage(workerIndex: number, message: any) {
-    // Handle specific message types
+    // Handle task completion
     if (message.type === 'task:complete') {
-        const { taskId, result } = message;
-        // Find task in queue? No, we need to track which task is on which worker.
-        // For simplicity, we'll assume a request/response model or use a map of taskId -> promise.
-        // But here we are just releasing the worker.
-        this.activeWorkers.set(workerIndex, false);
-        this.processNextTask();
+        const { taskId, result, error } = message;
+        const pendingTask = this.pendingTasks.get(taskId);
+        
+        if (pendingTask) {
+            // Clear timeout
+            if (pendingTask.timeoutHandle) {
+                clearTimeout(pendingTask.timeoutHandle);
+            }
+            
+            // Remove from pending tasks
+            this.pendingTasks.delete(taskId);
+            
+            // Mark worker as available
+            this.activeWorkers.set(workerIndex, false);
+            
+            // Resolve or reject the promise
+            if (error) {
+                pendingTask.task.reject(new Error(error));
+            } else {
+                pendingTask.task.resolve(result);
+            }
+            
+            // Emit completion event
+            this.eventBus.publish('system', 'task:complete', {
+                taskId,
+                workerId: workerIndex,
+                duration: Date.now() - pendingTask.startTime,
+                success: !error
+            });
+            
+            // Process next task
+            this.processNextTask();
+        } else {
+            console.warn(`Received completion for unknown task: ${taskId}`);
+        }
     }
     
     // Re-emit events from worker to main event bus
     if (message.type === 'event') {
         this.eventBus.publish(message.topic, message.event, message.payload);
     }
+    
+    // Handle progress updates
+    if (message.type === 'task:progress') {
+        const { taskId, progress } = message;
+        this.eventBus.publish('system', 'task:progress', { taskId, progress });
+    }
   }
 
-  public async executeTask(type: string, payload: any): Promise<any> {
+  private handleWorkerError(workerIndex: number, error: Error) {
+    // Find and fail all tasks assigned to this worker
+    for (const [taskId, pendingTask] of this.pendingTasks.entries()) {
+      if (pendingTask.workerIndex === workerIndex) {
+        // Clear timeout
+        if (pendingTask.timeoutHandle) {
+          clearTimeout(pendingTask.timeoutHandle);
+        }
+        
+        // Retry or fail the task
+        if (pendingTask.task.retries < pendingTask.task.maxRetries) {
+          pendingTask.task.retries++;
+          this.taskQueue.unshift(pendingTask.task); // Add to front of queue for retry
+          this.pendingTasks.delete(taskId);
+        } else {
+          pendingTask.task.reject(new Error(`Worker error: ${error.message}`));
+          this.pendingTasks.delete(taskId);
+        }
+      }
+    }
+    
+    // Mark worker as available
+    this.activeWorkers.set(workerIndex, false);
+    
+    // Respawn the worker
+    this.spawnWorker(workerIndex);
+  }
+
+  private handleWorkerExit(workerIndex: number, code: number) {
+    // Similar to handleWorkerError, but for worker exits
+    this.handleWorkerError(workerIndex, new Error(`Worker exited with code ${code}`));
+  }
+
+  private handleTaskTimeout(taskId: string) {
+    const pendingTask = this.pendingTasks.get(taskId);
+    
+    if (pendingTask) {
+      // Remove from pending tasks
+      this.pendingTasks.delete(taskId);
+      
+      // Mark worker as available
+      this.activeWorkers.set(pendingTask.workerIndex, false);
+      
+      // Retry or fail the task
+      if (pendingTask.task.retries < pendingTask.task.maxRetries) {
+        pendingTask.task.retries++;
+        this.taskQueue.unshift(pendingTask.task); // Add to front of queue for retry
+        this.eventBus.publish('system', 'task:timeout:retry', { taskId, retries: pendingTask.task.retries });
+      } else {
+        pendingTask.task.reject(new Error(`Task timeout after ${pendingTask.task.timeout}ms`));
+        this.eventBus.publish('system', 'task:timeout:failed', { taskId });
+      }
+      
+      // Process next task
+      this.processNextTask();
+    }
+  }
+
+  public async executeTask(
+    type: string, 
+    payload: any, 
+    options: { priority?: number; timeout?: number; maxRetries?: number } = {}
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
       const task: WorkerTask = {
         id: Math.random().toString(36).substring(7),
         type,
         payload,
+        priority: options.priority ?? 0,
+        timeout: options.timeout ?? this.defaultTimeout,
+        retries: 0,
+        maxRetries: options.maxRetries ?? 3,
         resolve,
         reject
       };
 
       this.taskQueue.push(task);
+      
+      // Sort queue by priority (higher priority first)
+      this.taskQueue.sort((a, b) => b.priority - a.priority);
+      
       this.processNextTask();
     });
   }
@@ -121,9 +240,17 @@ export class WorkerPool {
     const worker = this.workers[availableWorkerIndex];
     this.activeWorkers.set(availableWorkerIndex, true);
 
-    // TODO: We need a way to map the response back to the promise.
-    // For now, we'll just send the task. The worker should reply with task:complete and taskId.
-    // We would need a map of pendingTasks.
+    // Track pending task with timeout
+    const timeoutHandle = task.timeout ? setTimeout(() => {
+      this.handleTaskTimeout(task.id);
+    }, task.timeout) : undefined;
+
+    this.pendingTasks.set(task.id, {
+      task,
+      workerIndex: availableWorkerIndex,
+      startTime: Date.now(),
+      timeoutHandle
+    });
     
     if (worker) {
         worker.postMessage({
@@ -132,13 +259,43 @@ export class WorkerPool {
             taskType: task.type,
             payload: task.payload
         });
+        
+        this.eventBus.publish('system', 'task:start', {
+          taskId: task.id,
+          taskType: task.type,
+          workerId: availableWorkerIndex
+        });
     } else {
         console.error(`Worker at index ${availableWorkerIndex} is undefined`);
-        // Put task back? Or fail it? For now, let's just log.
+        // Clear timeout and reject task
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        this.pendingTasks.delete(task.id);
+        task.reject(new Error('Worker not available'));
     }
   }
   
   public terminate() {
+      // Clear all pending tasks
+      for (const [taskId, pendingTask] of this.pendingTasks.entries()) {
+        if (pendingTask.timeoutHandle) {
+          clearTimeout(pendingTask.timeoutHandle);
+        }
+        pendingTask.task.reject(new Error('Worker pool terminated'));
+      }
+      this.pendingTasks.clear();
+      
+      // Terminate all workers
       this.workers.forEach(w => w.terminate());
+  }
+  
+  public getStats() {
+    return {
+      totalWorkers: this.maxWorkers,
+      activeWorkers: Array.from(this.activeWorkers.values()).filter(busy => busy).length,
+      pendingTasks: this.pendingTasks.size,
+      queuedTasks: this.taskQueue.length
+    };
   }
 }

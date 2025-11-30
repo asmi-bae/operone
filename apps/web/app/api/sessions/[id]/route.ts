@@ -14,12 +14,26 @@ export async function DELETE(
 
         const { id } = await params
 
-        // Verify the session belongs to the user before deleting
-        await prisma.session.delete({
+        // Find the session to verify ownership and check if it's current
+        const targetSession = await prisma.session.findFirst({
             where: {
                 id,
                 userId: session.user.id
             }
+        })
+
+        if (!targetSession) {
+            return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+        }
+
+        // Prevent revoking the current session
+        if (targetSession.sessionToken === session.sessionToken) {
+            return NextResponse.json({ error: 'Cannot revoke current session' }, { status: 400 })
+        }
+
+        // Delete the session
+        await prisma.session.delete({
+            where: { id }
         })
 
         return NextResponse.json({ success: true })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,8 +25,85 @@ interface Theme {
 export default function AppearancePage() {
     const [saving, setSaving] = useState(false)
     const { theme: currentTheme, setTheme } = useTheme()
-    const [selectedTheme, setSelectedTheme] = useState(currentTheme || 'system')
+    const [selectedTheme, setSelectedTheme] = useState('system') // Default to system to avoid hydration mismatch
+    const [selectedColor, setSelectedColor] = useState('blue')
+    const [mounted, setMounted] = useState(false)
+    const [colorLoaded, setColorLoaded] = useState(false)
     const { toast } = useToast()
+
+    // Color mapping for CSS variables - memoized to prevent recreation
+    const colorMap = useMemo<Record<string, { hsl: string; rgb: string }>>(() => ({
+        blue: { hsl: '221.2 83.2% 53.3%', rgb: '59 130 246' },
+        green: { hsl: '142.1 76.2% 36.3%', rgb: '34 197 94' },
+        red: { hsl: '346.8 77.2% 49.8%', rgb: '239 68 68' },
+        purple: { hsl: '262.1 83.3% 57.8%', rgb: '147 51 234' },
+        orange: { hsl: '24.6 95% 53.1%', rgb: '249 115 22' },
+        pink: { hsl: '330.4 81.2% 60.4%', rgb: '236 72 153' },
+        yellow: { hsl: '41.1 96.3% 50.2%', rgb: '245 158 11' },
+        cyan: { hsl: '188.7 94.2% 35.5%', rgb: '6 182 212' }
+    }), [])
+
+    // Apply saved color immediately to prevent flash
+    if (typeof window !== 'undefined' && !colorLoaded) {
+        const colorCookie = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('primaryColor='))
+        
+        if (colorCookie) {
+            const cookieParts = colorCookie.split('=')
+            if (cookieParts.length >= 2) {
+                const savedColor = cookieParts[1]
+                if (savedColor) {
+                    const root = document.documentElement
+                    const colorData = colorMap[savedColor]
+                    if (colorData) {
+                        root.style.setProperty('--primary', colorData.hsl)
+                        root.style.setProperty('--primary-foreground', '0 0% 100%')
+                        root.style.setProperty('--primary-rgb', colorData.rgb)
+                        setColorLoaded(true)
+                    }
+                }
+            }
+        }
+    }
+
+    // Prevent hydration mismatch and load saved preferences
+    useEffect(() => {
+        setMounted(true)
+        
+        // Load saved theme
+        if (currentTheme) {
+            setSelectedTheme(currentTheme)
+        }
+        
+        // Load saved color from cookies
+        const loadSavedColor = () => {
+            const colorCookie = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('primaryColor='))
+            
+            if (colorCookie) {
+                const cookieParts = colorCookie.split('=')
+                if (cookieParts.length >= 2) {
+                    const savedColor = cookieParts[1]
+                    if (savedColor) {
+                        setSelectedColor(savedColor)
+                        
+                        // Apply the saved color directly
+                        const root = document.documentElement
+                        const colorData = colorMap[savedColor]
+                        if (colorData) {
+                            root.style.setProperty('--primary', colorData.hsl)
+                            root.style.setProperty('--primary-foreground', '0 0% 100%')
+                            root.style.setProperty('--primary-rgb', colorData.rgb)
+                        }
+                    }
+                }
+            }
+        }
+        
+        loadSavedColor()
+    }, [currentTheme, colorMap, setSelectedColor])
 
     const themes: Theme[] = [
         {
@@ -81,46 +158,6 @@ export default function AppearancePage() {
         { name: 'Cyan', value: 'cyan', class: 'bg-cyan-500' }
     ]
 
-    const [selectedColor, setSelectedColor] = useState('blue')
-
-    // Load saved preferences from cookies on mount
-    useEffect(() => {
-        const loadSavedPreferences = () => {
-            // Load saved color
-            const colorCookie = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('primaryColor='))
-            
-            if (colorCookie) {
-                const savedColor = colorCookie.split('=')[1]
-                setSelectedColor(savedColor)
-                
-                // Apply the saved color directly without calling handleColorChange
-                const root = document.documentElement
-                const colorMap: Record<string, { hsl: string; rgb: string }> = {
-                    blue: { hsl: '221.2 83.2% 53.3%', rgb: '59 130 246' },
-                    green: { hsl: '142.1 76.2% 36.3%', rgb: '34 197 94' },
-                    red: { hsl: '346.8 77.2% 49.8%', rgb: '239 68 68' },
-                    purple: { hsl: '262.1 83.3% 57.8%', rgb: '147 51 234' },
-                    orange: { hsl: '24.6 95% 53.1%', rgb: '249 115 22' },
-                    pink: { hsl: '330.4 81.2% 60.4%', rgb: '236 72 153' },
-                    yellow: { hsl: '41.1 96.3% 50.2%', rgb: '245 158 11' },
-                    cyan: { hsl: '188.7 94.2% 35.5%', rgb: '6 182 212' }
-                }
-                
-                // Update all primary color variations
-                const colorData = colorMap[savedColor]
-                if (colorData) {
-                    root.style.setProperty('--primary', colorData.hsl)
-                    root.style.setProperty('--primary-foreground', '0 0% 100%')
-                    root.style.setProperty('--primary-rgb', colorData.rgb)
-                }
-            }
-        }
-
-        loadSavedPreferences()
-    }, [])
-
     const handleThemeChange = async (themeId: string) => {
         setSelectedTheme(themeId)
         setTheme(themeId)
@@ -132,21 +169,14 @@ export default function AppearancePage() {
         setSelectedColor(color)
         // Apply color theme by updating CSS variables
         const root = document.documentElement
-        const colorMap: Record<string, { hsl: string; rgb: string }> = {
-            blue: { hsl: '221.2 83.2% 53.3%', rgb: '59 130 246' },
-            green: { hsl: '142.1 76.2% 36.3%', rgb: '34 197 94' },
-            red: { hsl: '346.8 77.2% 49.8%', rgb: '239 68 68' },
-            purple: { hsl: '262.1 83.3% 57.8%', rgb: '147 51 234' },
-            orange: { hsl: '24.6 95% 53.1%', rgb: '249 115 22' },
-            pink: { hsl: '330.4 81.2% 60.4%', rgb: '236 72 153' },
-            yellow: { hsl: '41.1 96.3% 50.2%', rgb: '245 158 11' },
-            cyan: { hsl: '188.7 94.2% 35.5%', rgb: '6 182 212' }
-        }
+        const colorData = colorMap[color]
         
-        // Update all primary color variations
-        root.style.setProperty('--primary', colorMap[color].hsl)
-        root.style.setProperty('--primary-foreground', '0 0% 100%')
-        root.style.setProperty('--primary-rgb', colorMap[color].rgb)
+        if (colorData) {
+            // Update all primary color variations
+            root.style.setProperty('--primary', colorData.hsl)
+            root.style.setProperty('--primary-foreground', '0 0% 100%')
+            root.style.setProperty('--primary-rgb', colorData.rgb)
+        }
         
         // Save to cookies
         document.cookie = `primaryColor=${color}; path=/; max-age=31536000` // 1 year
@@ -177,6 +207,22 @@ export default function AppearancePage() {
         try {
             setSelectedTheme('system')
             setTheme('system')
+            setSelectedColor('blue')
+            
+            // Reset color to default blue
+            const root = document.documentElement
+            const blueColorData = colorMap.blue
+            
+            if (blueColorData) {
+                root.style.setProperty('--primary', blueColorData.hsl)
+                root.style.setProperty('--primary-foreground', '0 0% 100%')
+                root.style.setProperty('--primary-rgb', blueColorData.rgb)
+            }
+            
+            // Clear cookies
+            document.cookie = 'primaryColor=; path=/; max-age=0'
+            document.cookie = 'theme=; path=/; max-age=0'
+            
             toast({
                 title: "Reset",
                 description: "Settings reset to defaults",
@@ -210,33 +256,51 @@ export default function AppearancePage() {
                                 </h3>
                                 <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
                             </div>
-                            <div className="p-8">
-                                <div className="flex justify-center gap-8">
-                                    {themes.map((theme) => (
-                                        <div
-                                            key={theme.id}
-                                            className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all duration-200 text-center ${
-                                                selectedTheme === theme.id
-                                                    ? 'border-primary ring-2 ring-primary/20 ring-offset-2'
-                                                    : 'border-border hover:border-primary/30'
-                                            }`}
-                                            onClick={() => handleThemeChange(theme.id)}
-                                        >
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${theme.preview}`}>
-                                                    {theme.icon}
+                            {mounted ? (
+                                <div className="p-8">
+                                    <div className="flex justify-center gap-8">
+                                        {themes.map((theme) => (
+                                            <div
+                                                key={theme.id}
+                                                className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all duration-200 text-center ${
+                                                    selectedTheme === theme.id
+                                                        ? 'border-primary ring-2 ring-primary/20 ring-offset-2'
+                                                        : 'border-border hover:border-primary/30'
+                                                }`}
+                                                onClick={() => handleThemeChange(theme.id)}
+                                            >
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${theme.preview}`}>
+                                                        {theme.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-medium">{theme.name}</h4>
+                                                    </div>
+                                                    {selectedTheme === theme.id && (
+                                                        <Badge variant="default" className="text-xs">Active</Badge>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-medium">{theme.name}</h4>
-                                                </div>
-                                                {selectedTheme === theme.id && (
-                                                    <Badge variant="default" className="text-xs">Active</Badge>
-                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="p-8">
+                                    <div className="flex justify-center gap-8">
+                                        {themes.map((theme) => (
+                                            <div
+                                                key={theme.id}
+                                                className="relative cursor-pointer rounded-2xl border-2 p-6 transition-all duration-200 text-center border-border animate-pulse"
+                                            >
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="w-16 h-16 rounded-full bg-muted animate-pulse"></div>
+                                                    <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Color Selection */}

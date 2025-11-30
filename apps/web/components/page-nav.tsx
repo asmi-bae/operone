@@ -11,7 +11,7 @@ import {
   User,
   Shield,
   Palette,
-  Accessibility,
+  Eye,
   Bell,
   CreditCard,
   Mail,
@@ -25,7 +25,7 @@ import {
   Loader2,
   Brain,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { LucideIcon } from "lucide-react"
 
@@ -81,7 +81,7 @@ const data: {
       url: "/dashboard/accessibility",
       icon: Palette,
       items: [
-        { title: "Accessibility", url: "/dashboard/accessibility", icon: Accessibility },
+        { title: "Accessibility", url: "/dashboard/accessibility", icon: Eye },
       ],
     },
 
@@ -120,13 +120,16 @@ export function AppSidebar() {
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     settings: true,
   })
-  const [activePath, setActivePath] = useState("/dashboard")
   const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
-  React.useEffect(() => {
-    setActivePath(window.location.pathname)
-  }, [])
+  const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard" || pathname === "/dashboard/"
+    }
+    return pathname.startsWith(href)
+  }
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -145,7 +148,6 @@ export function AppSidebar() {
         setIsSigningOut(false)
       }
     } else {
-      setActivePath(href)
       router.push(href)
       setIsMobileMenuOpen(false)
     }
@@ -212,10 +214,10 @@ export function AppSidebar() {
                                       <button
                                         key={subItem.title}
                                         onClick={() => handleNavigation(subItem.url)}
-                                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors group ml-6 relative ${activePath === subItem.url ? 'bg-accent/30 text-accent-foreground' : ''
+                                        className={`w-full flex items-center px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors group ml-6 relative ${isActive(subItem.url) ? 'bg-accent/30 text-accent-foreground' : ''
                                           }`}
                                       >
-                                        {activePath === subItem.url && (
+                                        {isActive(subItem.url) && (
                                           <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-full" />
                                         )}
                                         <subItem.icon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -231,10 +233,10 @@ export function AppSidebar() {
                           // Direct navigation item (Dashboard, Security, Sessions)
                           <button
                             onClick={() => handleNavigation(item.url)}
-                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent/50 transition-colors group relative ${activePath === item.url ? 'bg-accent/30 text-accent-foreground' : ''
+                            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent/50 transition-colors group relative ${isActive(item.url) ? 'bg-accent/30 text-accent-foreground' : ''
                               }`}
                           >
-                            {activePath === item.url && (
+                            {isActive(item.url) && (
                               <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-full" />
                             )}
                             <item.icon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />

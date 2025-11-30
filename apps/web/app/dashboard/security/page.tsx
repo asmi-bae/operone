@@ -76,14 +76,8 @@ export default function SecurityPage() {
     // Show loading state while data is being fetched
     if (settingsLoading || sessionsLoading) {
         return (
-            <div className="space-y-4 px-2 sm:px-0">
-                <Card className='border-none'>
-                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
-                        <div className="flex items-center justify-center p-8">
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         )
     }

@@ -52,15 +52,20 @@ export interface PipelineConfig {
   enableMemory?: boolean;
   safetyConfig?: any;
   streamingCallback?: (chunk: string) => void;
+  enableProfiling?: boolean; // Enable performance profiling
+  enableAdaptiveOptimization?: boolean; // Enable adaptive optimization based on past performance
 }
 
 export class ThinkingPipeline {
   private config: PipelineConfig;
   private eventBus?: any; // Using any to avoid circular dependency issues for now, ideally should be EventBus type
+  private performanceMonitor?: any; // PerformanceMonitor instance
+  private stagePerformanceHistory: Map<string, number[]> = new Map(); // Track stage performance
 
-  constructor(config: PipelineConfig = {}, eventBus?: any) {
+  constructor(config: PipelineConfig = {}, eventBus?: any, performanceMonitor?: any) {
     this.config = config;
     this.eventBus = eventBus;
+    this.performanceMonitor = performanceMonitor;
   }
 
   private emit(event: string, data: any) {
@@ -341,9 +346,9 @@ export class ThinkingPipeline {
           stepId: context.plan.steps[index]?.id || `step-${index}`,
           selectedTool: route.tool,
           route,
-          alternatives: [], // TODO: Add alternatives from router
-          confidence: 0.9, // TODO: Get from router
-          reasoning: `Selected ${route.tool} for ${route.method}`,
+          alternatives: route.alternatives || [],
+          confidence: route.confidence || 0.9,
+          reasoning: route.reasoning || `Selected ${route.tool} for ${route.method}`,
         };
         
         this.emit('stage:progress', createPipelineEvent(

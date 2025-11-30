@@ -9,6 +9,10 @@ export * from './core/StorageManager';
 export { EventBus } from './core/EventBus';
 export { WorkerPool } from './core/WorkerPool';
 export { ToolRegistry } from './core/ToolRegistry';
+export { ResourceAllocator } from './core/ResourceAllocator';
+export type { ResourceLimits, ResourceUsage, ResourceAllocation } from './core/ResourceAllocator';
+export { PerformanceMonitor } from './core/PerformanceMonitor';
+export type { PerformanceMetric, PerformanceProfile, PerformanceReport } from './core/PerformanceMonitor';
 
 // Agent exports
 export { AssistantAgent } from './agents/AssistantAgent';

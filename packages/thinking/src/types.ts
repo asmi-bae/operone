@@ -126,6 +126,14 @@ export const ToolRoute = z.object({
   tool: ToolType,
   method: z.string(),
   parameters: z.record(z.string(), z.any()),
+  confidence: z.number().min(0).max(1).default(0.9), // Confidence in this routing decision
+  alternatives: z.array(z.object({
+    tool: ToolType,
+    method: z.string(),
+    confidence: z.number().min(0).max(1),
+    reason: z.string(),
+  })).default([]), // Alternative routing options
+  reasoning: z.string().optional(), // Why this route was chosen
   fallback: z.object({
     tool: ToolType,
     method: z.string(),

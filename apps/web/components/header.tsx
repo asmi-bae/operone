@@ -7,10 +7,20 @@ import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { HeaderUser } from "@/components/header-user"
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 export default function Header() {
   const { data: session, status } = useSession()
   const [isMobile, setIsMobile] = useState(false)
+  const pathname = usePathname()
+
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/"
+    }
+    return pathname.startsWith(href)
+  }
 
   useEffect(() => {
     const checkMobile = () => {
@@ -36,25 +46,45 @@ export default function Header() {
           <div className="flex items-center space-x-2 text-sm font-medium">
             <Link
               href="/download"
-              className="transition-colors hover:bg-muted px-3 py-1.5 rounded-full text-foreground/60 hover:text-foreground"
+              className={cn(
+                "transition-colors px-3 py-1.5 rounded-full",
+                isActive("/download") 
+                  ? "bg-muted text-foreground" 
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              )}
             >
               Download
             </Link>
             <Link
               href="/features"
-              className="transition-colors hover:bg-muted px-3 py-1.5 rounded-full text-foreground/60 hover:text-foreground"
+              className={cn(
+                "transition-colors px-3 py-1.5 rounded-full",
+                isActive("/features") 
+                  ? "bg-muted text-foreground" 
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              )}
             >
               Features
             </Link>
             <Link
               href="/pricing"
-              className="transition-colors hover:bg-muted px-3 py-1.5 rounded-full text-foreground/60 hover:text-foreground"
+              className={cn(
+                "transition-colors px-3 py-1.5 rounded-full",
+                isActive("/pricing") 
+                  ? "bg-muted text-foreground" 
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              )}
             >
               Pricing
             </Link>
             <Link
               href="/docs"
-              className="transition-colors hover:bg-muted px-3 py-1.5 rounded-full text-foreground/60 hover:text-foreground"
+              className={cn(
+                "transition-colors px-3 py-1.5 rounded-full",
+                isActive("/docs") 
+                  ? "bg-muted text-foreground" 
+                  : "text-foreground/60 hover:text-foreground hover:bg-muted"
+              )}
             >
               Docs
             </Link>

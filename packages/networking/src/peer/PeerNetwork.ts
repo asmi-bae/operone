@@ -1,55 +1,29 @@
 import { EventEmitter } from 'events';
-import WebSocket from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import * as crypto from 'crypto';
 import * as https from 'https';
 import * as fs from 'fs';
+import { NetworkTopology, TopologyNode, NetworkStats } from './NetworkTopology';
+import { QoSManager, QoSMetrics } from './QoSManager';
 
-export interface PeerNetworkConfig {
-  peerId: string;
-  peerName: string;
-  port?: number;
-  enableTLS?: boolean;
-  tlsKey?: string;
-  tlsCert?: string;
-  jwtSecret?: string;
-  maxPeers?: number;
-  enableMessageSigning?: boolean;
-  signingKey?: string;
-}
+// ... existing interfaces ...
 
-export interface PeerMessage {
-  type: 'handshake' | 'tool-call' | 'tool-result' | 'tool-broadcast' | 'heartbeat' | 'peer-list';
-  from: string;
-  to?: string;
-  data: any;
-  timestamp: number;
-  signature?: string;
-}
-
-export interface ConnectedPeer {
-  id: string;
-  name: string;
-  ws: WebSocket;
-  authenticated: boolean;
-  lastHeartbeat: number;
-  capabilities: string[];
-  tools: string[];
-}
-
-/**
- * PeerNetwork - Secure WebSocket-based peer-to-peer networking
- * Supports 50+ concurrent peer connections with TLS encryption and JWT authentication
- */
 export class PeerNetwork extends EventEmitter {
   private config: PeerNetworkConfig;
-  private server?: WebSocket.Server;
+  private server?: WebSocketServer;
   private peers: Map<string, ConnectedPeer> = new Map();
+  
   private heartbeatInterval?: NodeJS.Timeout;
   private reconnectAttempts: Map<string, number> = new Map();
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
-  private readonly HEARTBEAT_INTERVAL = 30000; // 30 seconds
+  private readonly HEARTBEAT_INTERVAL: number;
   private readonly HEARTBEAT_TIMEOUT = 60000; // 60 seconds
   private signingKey?: Buffer;
+  
+  // Network Management
+  private topology: NetworkTopology;
+  private qosManager: QoSManager;
+  private qosMonitorInterval?: NodeJS.Timeout;
 
   constructor(config: PeerNetworkConfig) {
     super();
@@ -61,17 +35,31 @@ export class PeerNetwork extends EventEmitter {
       ...config
     };
     
+    this.HEARTBEAT_INTERVAL = config.heartbeatInterval || 30000;
+    
     // Initialize signing key if enabled
     if (this.config.enableMessageSigning && this.config.signingKey) {
       this.signingKey = Buffer.from(this.config.signingKey, 'utf-8');
     }
+    
+    // Initialize Network Management
+    this.topology = new NetworkTopology(this.config.peerId);
+    this.qosManager = new QoSManager();
+    
+    // Listen for topology events
+    this.topology.on('peer:added', (node) => this.emit('topology:peer-added', node));
+    this.topology.on('topology:updated', (data) => this.emit('topology:updated', data));
+    
+    // Listen for QoS violations
+    this.qosManager.on('violation:latency', (data) => this.emit('qos:violation', { type: 'latency', ...data }));
+    this.qosManager.on('violation:packet-loss', (data) => this.emit('qos:violation', { type: 'packet-loss', ...data }));
   }
 
   /**
    * Start the peer network server
    */
   async start(): Promise<void> {
-    const wsOptions: WebSocket.ServerOptions = {
+    const wsOptions: any = {
       port: this.config.port
     };
 
@@ -87,11 +75,13 @@ export class PeerNetwork extends EventEmitter {
       delete wsOptions.port;
     }
 
-    this.server = new WebSocket.Server(wsOptions);
+    this.server = new WebSocketServer(wsOptions);
 
     this.server.on('connection', (ws: WebSocket, req) => {
       this.handleNewConnection(ws, req);
     });
+    
+    // ... rest of start method ...
 
     this.server.on('error', (error) => {
       this.emit('error', error);
@@ -99,6 +89,9 @@ export class PeerNetwork extends EventEmitter {
 
     // Start heartbeat monitoring
     this.startHeartbeat();
+    
+    // Start QoS monitoring
+    this.startQoSMonitoring();
 
     this.emit('started', { port: this.config.port });
   }
@@ -109,6 +102,10 @@ export class PeerNetwork extends EventEmitter {
   async stop(): Promise<void> {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
+    }
+    
+    if (this.qosMonitorInterval) {
+      clearInterval(this.qosMonitorInterval);
     }
 
     // Close all peer connections
@@ -163,7 +160,7 @@ export class PeerNetwork extends EventEmitter {
         reject(error);
       });
 
-      ws.on('message', (data: WebSocket.Data) => {
+      ws.on('message', (data: any) => {
         this.handleMessage(ws, data);
       });
 
@@ -180,12 +177,39 @@ export class PeerNetwork extends EventEmitter {
   }
 
   /**
+   * Broadcast a message to all connected peers
+   */
+  broadcast(message: Omit<PeerMessage, 'from' | 'timestamp'>): void {
+    const fullMessage: PeerMessage = {
+      ...message,
+      from: this.config.peerId,
+      timestamp: Date.now()
+    };
+
+    for (const peer of this.peers.values()) {
+      if (peer.authenticated) {
+        this.sendMessage(peer.ws, fullMessage);
+      }
+    }
+  }
+
+  /**
    * Send a tool execution request to a specific peer
    */
   async executeRemoteTool(peerId: string, toolName: string, args: any): Promise<any> {
-    const peer = this.peers.get(peerId);
+    // Check routing first
+    const route = this.topology.findRoute(peerId);
+    if (!route) {
+      throw new Error(`No route to peer ${peerId}`);
+    }
+    
+    // For now, we only support direct connections or 1-hop
+    // In a full implementation, we would forward the message through the hops
+    const nextHop = route.hops[0];
+    const peer = this.peers.get(nextHop);
+    
     if (!peer) {
-      throw new Error(`Peer ${peerId} not connected`);
+      throw new Error(`Next hop ${nextHop} not connected`);
     }
 
     const requestId = crypto.randomUUID();
@@ -215,7 +239,7 @@ export class PeerNetwork extends EventEmitter {
       this.sendMessage(peer.ws, {
         type: 'tool-call',
         from: this.config.peerId,
-        to: peerId,
+        to: peerId, // Destination might be different from next hop
         data: {
           requestId,
           toolName,
@@ -226,28 +250,27 @@ export class PeerNetwork extends EventEmitter {
     });
   }
 
-  /**
-   * Broadcast a message to all connected peers
-   */
-  broadcast(message: Omit<PeerMessage, 'from' | 'timestamp'>): void {
-    const fullMessage: PeerMessage = {
-      ...message,
-      from: this.config.peerId,
-      timestamp: Date.now()
-    };
-
-    for (const peer of this.peers.values()) {
-      if (peer.authenticated) {
-        this.sendMessage(peer.ws, fullMessage);
-      }
-    }
-  }
+  // ... existing broadcast implementation ...
 
   /**
    * Get list of connected peers
    */
   getConnectedPeers(): ConnectedPeer[] {
     return Array.from(this.peers.values());
+  }
+  
+  /**
+   * Get network topology statistics
+   */
+  getNetworkStats(): NetworkStats {
+    return this.topology.getNetworkStats();
+  }
+  
+  /**
+   * Get QoS metrics for a peer
+   */
+  getQoSMetrics(peerId: string): QoSMetrics | undefined {
+    return this.qosManager.getMetrics(peerId);
   }
 
   // ============================================================================
@@ -263,7 +286,7 @@ export class PeerNetwork extends EventEmitter {
 
     let tempPeerId: string | null = null;
 
-    ws.on('message', (data: WebSocket.Data) => {
+    ws.on('message', (data: any) => {
       const message = this.parseMessage(data);
       if (!message) return;
 
@@ -290,6 +313,18 @@ export class PeerNetwork extends EventEmitter {
         };
 
         this.peers.set(message.from, peer);
+        
+        // Update topology
+        this.topology.addPeer({
+          peerId: peer.id,
+          peerName: peer.name,
+          directlyConnected: true,
+          latency: 0,
+          bandwidth: Infinity,
+          capabilities: peer.capabilities,
+          tools: peer.tools
+        });
+        
         this.emit('peer:connected', peer);
 
         // Send handshake response
@@ -319,7 +354,7 @@ export class PeerNetwork extends EventEmitter {
     });
   }
 
-  private handleMessage(ws: WebSocket, data: WebSocket.Data): void {
+  private handleMessage(ws: WebSocket, data: any): void {
     const message = this.parseMessage(data);
     if (!message) return;
 
@@ -328,17 +363,28 @@ export class PeerNetwork extends EventEmitter {
 
     // Update last heartbeat
     peer.lastHeartbeat = Date.now();
+    
+    // Update QoS metrics (latency calculation)
+    // In a real implementation, we'd use ping/pong timestamps
+    // For now, we rely on the heartbeat mechanism
 
     switch (message.type) {
       case 'heartbeat':
-        // Respond to heartbeat
-        this.sendMessage(ws, {
-          type: 'heartbeat',
-          from: this.config.peerId,
-          to: message.from,
-          data: { pong: true },
-          timestamp: Date.now()
-        });
+        if (message.data.ping) {
+          // Respond to ping
+          this.sendMessage(ws, {
+            type: 'heartbeat',
+            from: this.config.peerId,
+            to: message.from,
+            data: { pong: true, clientTimestamp: message.timestamp },
+            timestamp: Date.now()
+          });
+        } else if (message.data.pong && message.data.clientTimestamp) {
+          // Calculate RTT
+          const rtt = Date.now() - message.data.clientTimestamp;
+          this.qosManager.recordLatency(message.from, rtt);
+          this.topology.updateLatency(message.from, rtt);
+        }
         break;
 
       case 'tool-call':
@@ -380,6 +426,10 @@ export class PeerNetwork extends EventEmitter {
     const peer = this.peers.get(peerId);
     if (peer) {
       this.peers.delete(peerId);
+      
+      // Update topology
+      this.topology.updateTopology(peerId, false);
+      
       this.emit('peer:disconnected', { peerId, peer });
 
       // Attempt reconnection if this was an outgoing connection
@@ -410,19 +460,44 @@ export class PeerNetwork extends EventEmitter {
       }
     }, this.HEARTBEAT_INTERVAL);
   }
+  
+  private startQoSMonitoring(): void {
+    // Monitor QoS every 5 seconds
+    this.qosMonitorInterval = setInterval(() => {
+      // In a real implementation, we might actively probe for bandwidth
+      // For now, we just rely on passive metrics collected during message exchange
+    }, 5000);
+  }
 
   private sendMessage(ws: WebSocket, message: PeerMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
+      // Check QoS throttling
+      if (message.to && this.qosManager.shouldThrottle(message.to, message.type, 1024)) {
+        // In a real implementation, we would queue the message
+        // For now, we just log a warning and send anyway (soft throttling)
+        // console.warn(`Throttling message to ${message.to}`);
+      }
+      
       // Sign message if enabled
       if (this.config.enableMessageSigning && this.signingKey) {
         message.signature = this.signMessage(message);
       }
       
       ws.send(JSON.stringify(message));
+      
+      // Update bandwidth metrics (approximate)
+      if (message.to) {
+        // Estimate size
+        const size = JSON.stringify(message).length;
+        this.qosManager.updateMetrics(message.to, {
+          // This is instantaneous, real implementation would use moving average
+          bandwidth: size / 1024 / 1024 // MB
+        });
+      }
     }
   }
 
-  private parseMessage(data: WebSocket.Data): PeerMessage | null {
+  private parseMessage(data: any): PeerMessage | null {
     try {
       const message = JSON.parse(data.toString()) as PeerMessage;
       
@@ -524,3 +599,4 @@ export class PeerNetwork extends EventEmitter {
     return message.signature === expectedSignature;
   }
 }
+

@@ -2,10 +2,12 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProviderWrapper } from "@/components/providers/session-provider";
+import { LoadingProvider } from "@/components/providers/loading-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import ErrorBoundary from "@/components/error-boundary";
 import type { Metadata } from "next";
+import NavigationLoading from "@/components/navigation-loading";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -34,20 +36,23 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
         <ErrorBoundary>
-          <SessionProviderWrapper>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <div className="max-w-7xl mx-auto w-full">
-                {children}
-              </div>
-              <Toaster />
-              <ShadcnToaster />
-            </ThemeProvider>
-          </SessionProviderWrapper>
+          <LoadingProvider>
+            <SessionProviderWrapper>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <div className="max-w-7xl mx-auto w-full">
+                  <NavigationLoading />
+                  {children}
+                </div>
+                <Toaster />
+                <ShadcnToaster />
+              </ThemeProvider>
+            </SessionProviderWrapper>
+          </LoadingProvider>
         </ErrorBoundary>
       </body>
     </html>

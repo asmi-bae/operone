@@ -61,6 +61,7 @@ export class ToolRouter {
     if (!capability || !capability.available) {
       // Tool not available, find fallback
       const fallback = this.findFallback(tool, parameters);
+      const alternatives = this.findAlternatives(tool, parameters);
       
       return {
         tool,
@@ -69,6 +70,9 @@ export class ToolRouter {
           ...parameters,
           error: `Tool '${tool}' not available`,
         },
+        confidence: 0.3, // Low confidence when tool unavailable
+        alternatives,
+        reasoning: `Primary tool '${tool}' is not available. ${fallback ? 'Using fallback.' : 'No fallback available.'}`,
         fallback,
         timeout: 30000,
         retries: 0,
@@ -84,6 +88,12 @@ export class ToolRouter {
     // Configure retries
     const retries = this.getRetries(tool);
 
+    // Calculate confidence based on tool priority and availability
+    const confidence = this.calculateConfidence(tool, parameters);
+
+    // Find alternative tools
+    const alternatives = this.findAlternatives(tool, parameters);
+
     // Add streaming support if available
     const enhancedParams = {
       ...parameters,
@@ -94,6 +104,9 @@ export class ToolRouter {
       tool,
       method,
       parameters: enhancedParams,
+      confidence,
+      alternatives,
+      reasoning: `Selected '${tool}' with method '${method}' (confidence: ${(confidence * 100).toFixed(0)}%)`,
       timeout,
       retries,
     };
@@ -123,9 +136,93 @@ export class ToolRouter {
         ...parameters,
         fallbackFrom: tool,
       },
+      confidence: 0.6,
+      alternatives: [],
+      reasoning: `Fallback from ${tool} to ${fallbackTool}`,
       timeout: this.getTimeout(fallbackTool),
       retries: 1,
     };
+  }
+
+  /**
+   * Calculates confidence score for a routing decision
+   */
+  private calculateConfidence(tool: ToolType, parameters: Record<string, any>): number {
+    const capability = this.capabilities.get(tool);
+    if (!capability) return 0.5;
+
+    let confidence = 0.7; // Base confidence
+
+    // Increase confidence based on tool priority (higher priority = higher confidence)
+    confidence += (capability.priority / 10) * 0.2;
+
+    // Increase confidence if tool supports streaming and it's requested
+    if (capability.supportsStreaming && parameters.streaming) {
+      confidence += 0.05;
+    }
+
+    // Decrease confidence if parameters seem incomplete
+    if (Object.keys(parameters).length < 2) {
+      confidence -= 0.1;
+    }
+
+    // Ensure confidence is between 0 and 1
+    return Math.max(0, Math.min(1, confidence));
+  }
+
+  /**
+   * Finds alternative tools that could handle the same operation
+   */
+  private findAlternatives(tool: ToolType, parameters: Record<string, any>): Array<{
+    tool: ToolType;
+    method: string;
+    confidence: number;
+    reason: string;
+  }> {
+    const alternatives: Array<{
+      tool: ToolType;
+      method: string;
+      confidence: number;
+      reason: string;
+    }> = [];
+
+    // Define tool alternatives based on capabilities
+    const alternativeMap: Partial<Record<ToolType, ToolType[]>> = {
+      'fs': ['shell', 'mcp'],
+      'shell': ['fs', 'automation'],
+      'networking': ['github', 'mcp'],
+      'github': ['networking'],
+      'ai': ['mcp'],
+      'memory': ['sdb', 'fs'],
+      'sdb': ['memory'],
+      'automation': ['shell'],
+      'mcp': ['networking', 'shell'],
+      'peer': ['networking', 'shell'],
+    };
+
+    const possibleAlternatives = alternativeMap[tool] || [];
+
+    for (const altTool of possibleAlternatives) {
+      const altCapability = this.capabilities.get(altTool);
+      
+      if (altCapability && altCapability.available) {
+        const method = this.determineMethod(altTool, parameters);
+        const confidence = this.calculateConfidence(altTool, parameters) * 0.8; // Slightly lower than primary
+        
+        alternatives.push({
+          tool: altTool,
+          method,
+          confidence,
+          reason: `Can perform similar operations with ${altTool}`,
+        });
+      }
+    }
+
+    // Sort by confidence (highest first)
+    alternatives.sort((a, b) => b.confidence - a.confidence);
+
+    // Return top 3 alternatives
+    return alternatives.slice(0, 3);
   }
 
   /**

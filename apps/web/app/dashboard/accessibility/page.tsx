@@ -160,7 +160,7 @@ export default function AccessibilityPage() {
                                 <p className="text-sm text-muted-foreground">Adjust visual elements for better visibility</p>
                             </div>
                             <div className="rounded-md border">
-                                {settings.filter(s => ['high-contrast', 'large-text', 'text-size', 'line-height', 'color-blindness'].includes(s.id)).map((setting, index) => (
+                                {Array.isArray(settings) && settings.filter(s => ['high-contrast', 'large-text', 'text-size', 'line-height', 'color-blindness'].includes(s.id)).map((setting, index) => (
                                     <div key={setting.id} className={`flex items-center justify-between p-4 ${index !== 5 - 1 ? 'border-b' : ''}`}>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
@@ -200,7 +200,7 @@ export default function AccessibilityPage() {
                                                 <div className="flex items-center gap-3">
                                                     <Slider
                                                         value={[setting.value as number]}
-                                                        onValueChange={([value]) => handleSettingChange(setting.id, value)}
+                                                        onValueChange={([value]) => handleSettingChange(setting.id, value as number)}
                                                         min={setting.id === 'text-size' ? 12 : 1}
                                                         max={setting.id === 'text-size' ? 24 : 2}
                                                         step={setting.id === 'text-size' ? 1 : 0.1}
@@ -227,7 +227,7 @@ export default function AccessibilityPage() {
                                 <p className="text-sm text-muted-foreground">Configure how you interact with the interface</p>
                             </div>
                             <div className="rounded-md border">
-                                {settings.filter(s => ['reduce-motion', 'keyboard-navigation', 'screen-reader', 'focus-indicators'].includes(s.id)).map((setting, index) => (
+                                {Array.isArray(settings) && settings.filter(s => ['reduce-motion', 'keyboard-navigation', 'screen-reader', 'focus-indicators'].includes(s.id)).map((setting, index) => (
                                     <div key={setting.id} className={`flex items-center justify-between p-4 ${index !== 4 - 1 ? 'border-b' : ''}`}>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
