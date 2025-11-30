@@ -45,104 +45,10 @@ export default function RepositoriesPage() {
     const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('all')
 
     // Repositories state
-    const [repositories] = useState<Repository[]>([
-        {
-            id: '1',
-            name: 'operone-web',
-            description: 'Main web application built with Next.js and TypeScript',
-            language: 'TypeScript',
-            private: true,
-            lastCommit: '2 hours ago',
-            status: 'active',
-            stars: 42,
-            forks: 8,
-            watchers: 12,
-            createdAt: '2024-01-15',
-            updatedAt: '2024-03-14',
-            defaultBranch: 'main',
-            size: '125 MB',
-            contributors: 5
-        },
-        {
-            id: '2',
-            name: 'operone-api',
-            description: 'REST API server built with Go and PostgreSQL',
-            language: 'Go',
-            private: true,
-            lastCommit: '1 day ago',
-            status: 'active',
-            stars: 28,
-            forks: 4,
-            watchers: 8,
-            createdAt: '2024-01-20',
-            updatedAt: '2024-03-13',
-            defaultBranch: 'main',
-            size: '45 MB',
-            contributors: 3
-        },
-        {
-            id: '3',
-            name: 'operone-cli',
-            description: 'Command line interface for the Operone platform',
-            language: 'Rust',
-            private: false,
-            lastCommit: '3 days ago',
-            status: 'active',
-            stars: 156,
-            forks: 23,
-            watchers: 31,
-            createdAt: '2024-02-01',
-            updatedAt: '2024-03-11',
-            defaultBranch: 'main',
-            size: '12 MB',
-            contributors: 8
-        },
-        {
-            id: '4',
-            name: 'operone-mobile',
-            description: 'React Native mobile application',
-            language: 'TypeScript',
-            private: true,
-            lastCommit: '1 week ago',
-            status: 'archived',
-            stars: 15,
-            forks: 2,
-            watchers: 4,
-            createdAt: '2024-02-15',
-            updatedAt: '2024-03-07',
-            defaultBranch: 'main',
-            size: '89 MB',
-            contributors: 2
-        }
-    ])
+    const [repositories] = useState<Repository[]>([])
 
     // Recent actions state
-    const [recentActions] = useState<RepositoryAction[]>([
-        {
-            id: '1',
-            repositoryId: '1',
-            type: 'push',
-            status: 'completed',
-            timestamp: '2024-03-14T10:30:00Z',
-            user: 'john.doe'
-        },
-        {
-            id: '2',
-            repositoryId: '2',
-            type: 'pull',
-            status: 'completed',
-            timestamp: '2024-03-13T14:20:00Z',
-            user: 'jane.smith'
-        },
-        {
-            id: '3',
-            repositoryId: '3',
-            type: 'merge',
-            status: 'completed',
-            timestamp: '2024-03-11T09:15:00Z',
-            user: 'mike.wilson'
-        }
-    ])
+    const [recentActions] = useState<RepositoryAction[]>([])
 
     const handleCreateRepository = async () => {
         setLoading(true)

@@ -47,77 +47,10 @@ export default function AppsOAuthPage() {
     const [showClientSecret, setShowClientSecret] = useState<string | null>(null)
 
     // OAuth Apps state
-    const [apps, setApps] = useState<OAuthApp[]>([
-        {
-            id: '1',
-            name: 'Operone Dashboard',
-            type: 'web',
-            description: 'Main web dashboard application',
-            clientId: 'oauth_app_1234567890',
-            clientSecret: 'sk_oauth_abc123def456ghi789',
-            callbackUrl: 'https://dashboard.operone.com/auth/callback',
-            permissions: ['read:profile', 'read:projects', 'write:projects'],
-            status: 'active',
-            createdAt: '2024-01-10',
-            lastUsed: '2024-03-14',
-            usageCount: 1542,
-            owner: 'john.doe'
-        },
-        {
-            id: '2',
-            name: 'Operone Mobile',
-            type: 'mobile',
-            description: 'iOS and Android mobile application',
-            clientId: 'oauth_app_0987654321',
-            clientSecret: 'sk_oauth_xyz789uvw456rst123',
-            callbackUrl: 'operone://auth/callback',
-            permissions: ['read:profile', 'read:projects'],
-            status: 'active',
-            createdAt: '2024-02-01',
-            lastUsed: '2024-03-13',
-            usageCount: 892,
-            owner: 'jane.smith'
-        },
-        {
-            id: '3',
-            name: 'Operone CLI',
-            type: 'cli',
-            description: 'Command line interface tool',
-            clientId: 'oauth_app_5678901234',
-            clientSecret: 'sk_oauth_pqr456mno789stu012',
-            callbackUrl: 'http://localhost:3000/callback',
-            permissions: ['read:profile', 'read:projects', 'write:projects', 'admin:system'],
-            status: 'development',
-            createdAt: '2024-02-15',
-            lastUsed: '2024-03-11',
-            usageCount: 234,
-            owner: 'mike.wilson'
-        }
-    ])
+    const [apps, setApps] = useState<OAuthApp[]>([])
 
     // OAuth Tokens state
-    const [tokens] = useState<OAuthToken[]>([
-        {
-            id: '1',
-            appId: '1',
-            token: 'oauth_token_abc123...',
-            scopes: ['read:profile', 'read:projects'],
-            expiresAt: '2024-06-15T00:00:00Z',
-            createdAt: '2024-03-14T10:30:00Z',
-            lastUsed: '2024-03-14T14:20:00Z',
-            revoked: false
-        },
-        {
-            id: '2',
-            appId: '2',
-            token: 'oauth_token_def456...',
-            scopes: ['read:profile', 'read:projects'],
-            expiresAt: '2024-05-01T00:00:00Z',
-            createdAt: '2024-03-01T09:15:00Z',
-            lastUsed: '2024-03-13T16:45:00Z',
-            revoked: false
-        }
-    ])
+    const [tokens] = useState<OAuthToken[]>([])
 
     const handleCreateApp = async () => {
         setLoading(true)

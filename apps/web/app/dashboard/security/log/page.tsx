@@ -1,0 +1,370 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, Shield, AlertTriangle, Check, X, Search, Download, Filter } from 'lucide-react'
+
+interface SecurityLog {
+    id: string
+    type: 'login' | 'logout' | 'password_change' | '2fa_enabled' | '2fa_disabled' | 'api_access' | 'suspicious' | 'failed_login'
+    description: string
+    timestamp: string
+    ipAddress: string
+    userAgent: string
+    location: string
+    severity: 'low' | 'medium' | 'high' | 'critical'
+}
+
+export default function SecurityLogPage() {
+    const [loading, setLoading] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [filter, setFilter] = useState<'all' | 'login' | 'security' | 'api' | 'suspicious'>('all')
+    const [severity, setSeverity] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all')
+
+    // Security logs state - will be fetched from API
+    const [logs, setLogs] = useState<SecurityLog[]>([])
+    const [logsLoading, setLogsLoading] = useState(true)
+
+    // Fetch security logs on component mount
+    useEffect(() => {
+        const fetchLogs = async () => {
+            try {
+                const response = await fetch('/api/security/logs')
+                if (response.ok) {
+                    const data = await response.json()
+                    setLogs(data.logs || [])
+                }
+            } catch {
+                console.error('Failed to fetch security logs')
+            } finally {
+                setLogsLoading(false)
+            }
+        }
+
+        fetchLogs()
+    }, [])
+
+    // Show loading state while data is being fetched
+    if (logsLoading) {
+        return (
+            <div className="space-y-4 px-2 sm:px-0">
+                <Card className='border-none'>
+                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    const handleExportLogs = async () => {
+        setLoading(true)
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            
+            // Create a sample export
+            const exportData = {
+                logs: filteredLogs,
+                exportDate: new Date().toISOString(),
+                filters: { filter, severity, searchTerm }
+            }
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `security-logs-${new Date().toISOString().split('T')[0]}.json`
+            a.click()
+            URL.revokeObjectURL(url)
+            
+            alert('Security logs exported successfully')
+        } catch {
+            alert('Failed to export logs')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const getLogIcon = (type: SecurityLog['type']) => {
+        switch (type) {
+            case 'login': return <Check className="h-4 w-4 text-green-500" />
+            case 'logout': return <X className="h-4 w-4 text-gray-500" />
+            case 'failed_login': return <X className="h-4 w-4 text-red-500" />
+            case 'password_change': return <Shield className="h-4 w-4 text-blue-500" />
+            case '2fa_enabled': return <Check className="h-4 w-4 text-green-500" />
+            case '2fa_disabled': return <X className="h-4 w-4 text-orange-500" />
+            case 'api_access': return <Shield className="h-4 w-4 text-purple-500" />
+            case 'suspicious': return <AlertTriangle className="h-4 w-4 text-red-500" />
+            default: return <Shield className="h-4 w-4 text-gray-500" />
+        }
+    }
+
+    const getSeverityBadge = (severity: SecurityLog['severity']) => {
+        const variants = {
+            low: 'secondary',
+            medium: 'default',
+            high: 'destructive',
+            critical: 'destructive'
+        } as const
+
+        const colors = {
+            low: 'text-gray-600',
+            medium: 'text-blue-600',
+            high: 'text-orange-600',
+            critical: 'text-red-600'
+        }
+
+        return (
+            <Badge variant={variants[severity]} className={`text-xs ${colors[severity]}`}>
+                {severity.charAt(0).toUpperCase() + severity.slice(1)}
+            </Badge>
+        )
+    }
+
+    const getTypeBadge = (type: SecurityLog['type']) => {
+        const colors = {
+            login: 'text-green-600',
+            logout: 'text-gray-600',
+            failed_login: 'text-red-600',
+            password_change: 'text-blue-600',
+            '2fa_enabled': 'text-green-600',
+            '2fa_disabled': 'text-orange-600',
+            api_access: 'text-purple-600',
+            suspicious: 'text-red-600'
+        }
+
+        return (
+            <Badge variant="outline" className={`text-xs ${colors[type]}`}>
+                {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </Badge>
+        )
+    }
+
+    const filteredLogs = logs.filter(log => {
+        // Search filter
+        if (searchTerm && !log.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return false
+        }
+
+        // Type filter
+        if (filter !== 'all') {
+            switch (filter) {
+                case 'login':
+                    if (!['login', 'logout', 'failed_login'].includes(log.type)) return false
+                    break
+                case 'security':
+                    if (!['password_change', '2fa_enabled', '2fa_disabled', 'suspicious'].includes(log.type)) return false
+                    break
+                case 'api':
+                    if (log.type !== 'api_access') return false
+                    break
+                case 'suspicious':
+                    if (log.type !== 'suspicious' && log.severity === 'low') return false
+                    break
+            }
+        }
+
+        // Severity filter
+        if (severity !== 'all' && log.severity !== severity) {
+            return false
+        }
+
+        return true
+    })
+
+    return (
+        <div className="space-y-4 px-2 sm:px-0">
+            <Card className='border-none'>
+                <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                    <div className="space-y-6">
+                        {/* Page Header */}
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div className="space-y-1">
+                                <h1 className="text-2xl font-bold">Security Log</h1>
+                                <p className="text-muted-foreground">Monitor and review security-related activities</p>
+                            </div>
+                            <Button onClick={handleExportLogs} variant="outline" size="sm" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Exporting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Export Logs
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="space-y-4">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search security logs..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Select value={filter} onValueChange={(value: 'all' | 'login' | 'security' | 'api' | 'suspicious') => setFilter(value)}>
+                                        <SelectTrigger className="w-40">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Events</SelectItem>
+                                            <SelectItem value="login">Login/Logout</SelectItem>
+                                            <SelectItem value="security">Security</SelectItem>
+                                            <SelectItem value="api">API Access</SelectItem>
+                                            <SelectItem value="suspicious">Suspicious</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={severity} onValueChange={(value: 'all' | 'low' | 'medium' | 'high' | 'critical') => setSeverity(value)}>
+                                        <SelectTrigger className="w-32">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Severity</SelectItem>
+                                            <SelectItem value="low">Low</SelectItem>
+                                            <SelectItem value="medium">Medium</SelectItem>
+                                            <SelectItem value="high">High</SelectItem>
+                                            <SelectItem value="critical">Critical</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Security Logs */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="font-medium flex items-center gap-2">
+                                        <Shield className="h-5 w-5" />
+                                        Security Events
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        {filteredLogs.length} event{filteredLogs.length !== 1 ? 's' : ''} found
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rounded-md border">
+                                {filteredLogs.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                                        <Shield className="h-12 w-12 text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-semibold">No security events found</h3>
+                                        <p className="text-sm text-muted-foreground mt-2">
+                                            Try adjusting your filters or search terms
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y">
+                                        {filteredLogs.map((log) => (
+                                            <div key={log.id} className="p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1">
+                                                        {getLogIcon(log.type)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <h4 className="font-medium truncate">{log.description}</h4>
+                                                            {getTypeBadge(log.type)}
+                                                            {getSeverityBadge(log.severity)}
+                                                        </div>
+                                                        <div className="space-y-1 text-sm text-muted-foreground">
+                                                            <div className="flex items-center gap-4">
+                                                                <span>
+                                                                    <strong>Time:</strong> {new Date(log.timestamp).toLocaleDateString('en-US', {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                                <span>
+                                                                    <strong>IP:</strong> {log.ipAddress}
+                                                                </span>
+                                                                <span>
+                                                                    <strong>Location:</strong> {log.location}
+                                                                </span>
+                                                            </div>
+                                                            <div className="truncate">
+                                                                <strong>User Agent:</strong> {log.userAgent}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Statistics */}
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <h3 className="font-medium flex items-center gap-2">
+                                    <Filter className="h-5 w-5" />
+                                    Security Overview
+                                </h3>
+                                <p className="text-sm text-muted-foreground">Summary of recent security activity</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="rounded-md border p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Check className="h-4 w-4 text-green-500" />
+                                        <h4 className="font-medium">Successful Logins</h4>
+                                    </div>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {logs.filter(l => l.type === 'login').length}
+                                    </p>
+                                </div>
+                                <div className="rounded-md border p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <X className="h-4 w-4 text-red-500" />
+                                        <h4 className="font-medium">Failed Logins</h4>
+                                    </div>
+                                    <p className="text-2xl font-bold text-red-600">
+                                        {logs.filter(l => l.type === 'failed_login').length}
+                                    </p>
+                                </div>
+                                <div className="rounded-md border p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                        <h4 className="font-medium">Suspicious Activity</h4>
+                                    </div>
+                                    <p className="text-2xl font-bold text-orange-600">
+                                        {logs.filter(l => l.type === 'suspicious').length}
+                                    </p>
+                                </div>
+                                <div className="rounded-md border p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shield className="h-4 w-4 text-blue-500" />
+                                        <h4 className="font-medium">Security Changes</h4>
+                                    </div>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        {logs.filter(l => ['password_change', '2fa_enabled', '2fa_disabled'].includes(l.type)).length}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

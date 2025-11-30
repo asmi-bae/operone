@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProviderWrapper } from "@/components/providers/session-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import ErrorBoundary from "@/components/error-boundary";
 import type { Metadata } from "next";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
                 {children}
               </div>
               <Toaster />
+              <ShadcnToaster />
             </ThemeProvider>
           </SessionProviderWrapper>
         </ErrorBoundary>

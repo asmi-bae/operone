@@ -10,10 +10,10 @@ export default function Home() {
     <div className="flex flex-col min-h-screen w-full">
       <Header />
       <main className="flex-1">
-        <AppNameSection />
         <HeroSection />
         <FeaturesSection />
         <ReviewSection />
+        <AppNameSection />
       </main>
       <Footer />
     </div>

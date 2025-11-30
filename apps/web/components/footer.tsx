@@ -9,44 +9,44 @@ export default function Footer() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           {/* Brand Section */}
           <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-3">
+            <div className="flex items-center space-x-3 mb-3">
               <Image 
                 src="/icons/operone-logo.svg" 
-                alt="Operone" 
-                width={32} 
-                height={32} 
-                className="h-8 w-8"
+                alt="OPERONE" 
+                width={64} 
+                height={64} 
+                className="h-12 w-12"
               />
               <div>
-                <h3 className="text-lg font-bold text-foreground">Operone</h3>
-                <p className="text-xs text-muted-foreground">Modern Stack for Rapid Development</p>
+                <h3 className="text-xl font-black text-foreground tracking-tight">OPERONE</h3>
+                <p className="text-sm text-muted-foreground font-medium">The Ultimate Development Platform</p>
               </div>
             </div>
-            <p className="text-muted-foreground text-sm mb-4 max-w-sm">
-              Build faster with our pre-configured monorepo.
+            <p className="text-muted-foreground text-sm mb-4 max-w-md leading-relaxed">
+              Build faster with our pre-configured monorepo. Modern stack for rapid development with enterprise-grade security and performance.
             </p>
-            <div className="flex space-x-3">
+            <div className="flex space-x-4">
               <Link 
                 href="https://github.com" 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110"
               >
-                <Github className="h-4 w-4" />
+                <Github className="h-5 w-5" />
               </Link>
               <Link 
                 href="https://twitter.com" 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110"
               >
-                <Twitter className="h-4 w-4" />
+                <Twitter className="h-5 w-5" />
               </Link>
               <Link 
                 href="mailto:contact@operone.dev" 
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110"
               >
-                <Mail className="h-4 w-4" />
+                <Mail className="h-5 w-5" />
               </Link>
             </div>
           </div>

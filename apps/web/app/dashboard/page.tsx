@@ -66,7 +66,7 @@ export default async function DashboardPage() {
                                 <div>
                                     <label className="block text-sm font-medium mb-2">Bio</label>
                                     <textarea
-                                        defaultValue="Whatever you like for yourself"
+                                        placeholder="Tell us about yourself"
                                         className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground resize-none"
                                         rows={4}
                                     />
@@ -78,14 +78,15 @@ export default async function DashboardPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-2">Pronouns</label>
-                                        <Select defaultValue="he/him">
+                                        <Select>
                                             <SelectTrigger className="w-full">
-                                                <SelectValue />
+                                                <SelectValue placeholder="Select pronouns" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="he/him">he/him</SelectItem>
                                                 <SelectItem value="she/her">she/her</SelectItem>
                                                 <SelectItem value="they/them">they/them</SelectItem>
+                                                <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -94,6 +95,7 @@ export default async function DashboardPage() {
                                         <label className="block text-sm font-medium mb-2">URL</label>
                                         <Input
                                             type="url"
+                                            placeholder="https://yourwebsite.com"
                                             className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
                                         />
                                     </div>
@@ -104,12 +106,12 @@ export default async function DashboardPage() {
                                     <div className="space-y-2">
                                         <Input
                                             type="url"
-                                            placeholder="https://www.facebook.com/the-shoaik2"
+                                            placeholder="https://www.facebook.com/yourusername"
                                             className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
                                         />
                                         <Input
                                             type="url"
-                                            placeholder="https://www.instagram.com/the-shoaik2"
+                                            placeholder="https://www.instagram.com/yourusername"
                                             className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
                                         />
                                     </div>

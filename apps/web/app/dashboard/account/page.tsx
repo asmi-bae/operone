@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -40,78 +40,101 @@ export default function AccountPage() {
     const [showAvatarDialog, setShowAvatarDialog] = useState(false)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-    // Profile state
-    const [profile, setProfile] = useState<UserProfile>({
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '+1 (555) 123-4567',
-        location: 'San Francisco, CA',
-        avatar: '/avatars/john-doe.jpg',
-        bio: 'Software developer passionate about building great products.',
-        website: 'https://johndoe.dev',
-        joinedDate: '2023-01-15',
-        lastActive: '2 minutes ago'
-    })
+    // Profile state - will be fetched from API
+    const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [profileLoading, setProfileLoading] = useState(true)
 
     // Form states
-    const [editName, setEditName] = useState(profile.name)
-    const [editEmail, setEditEmail] = useState(profile.email)
-    const [editPhone, setEditPhone] = useState(profile.phone)
-    const [editLocation, setEditLocation] = useState(profile.location)
-    const [editBio, setEditBio] = useState(profile.bio)
-    const [editWebsite, setEditWebsite] = useState(profile.website)
+    const [editName, setEditName] = useState('')
+    const [editEmail, setEditEmail] = useState('')
+    const [editPhone, setEditPhone] = useState('')
+    const [editLocation, setEditLocation] = useState('')
+    const [editBio, setEditBio] = useState('')
+    const [editWebsite, setEditWebsite] = useState('')
 
-    // Account settings state
-    const [accountSettings, setAccountSettings] = useState<AccountSetting[]>([
-        {
-            id: 'public-profile',
-            title: 'Public Profile',
-            description: 'Make your profile visible to other users',
-            enabled: true,
-            lastUpdated: '2024-01-15'
-        },
-        {
-            id: 'email-notifications',
-            title: 'Email Notifications',
-            description: 'Receive email updates about your account activity',
-            enabled: true,
-            lastUpdated: '2024-01-10'
-        },
-        {
-            id: 'two-factor-auth',
-            title: 'Two-Factor Authentication',
-            description: 'Add an extra layer of security to your account',
-            enabled: false,
-            lastUpdated: undefined
-        },
-        {
-            id: 'data-export',
-            title: 'Data Export',
-            description: 'Allow export of your account data',
-            enabled: true,
-            lastUpdated: '2024-01-08'
+    // Account settings state - will be fetched from API
+    const [accountSettings, setAccountSettings] = useState<AccountSetting[]>([])
+    const [settingsLoading, setSettingsLoading] = useState(true)
+
+    // Fetch profile data on component mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch('/api/account/profile')
+                if (response.ok) {
+                    const data = await response.json()
+                    setProfile(data)
+                    setEditName(data.name || '')
+                    setEditEmail(data.email || '')
+                    setEditPhone(data.phone || '')
+                    setEditLocation(data.location || '')
+                    setEditBio(data.bio || '')
+                    setEditWebsite(data.website || '')
+                }
+            } catch {
+                console.error('Failed to fetch profile')
+            } finally {
+                setProfileLoading(false)
+            }
         }
-    ])
+
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch('/api/account/settings')
+                if (response.ok) {
+                    const data = await response.json()
+                    setAccountSettings(data.settings || [])
+                }
+            } catch {
+                console.error('Failed to fetch settings')
+            } finally {
+                setSettingsLoading(false)
+            }
+        }
+
+        fetchProfile()
+        fetchSettings()
+    }, [])
+
+    // Show loading state while data is being fetched
+    if (profileLoading || settingsLoading) {
+        return (
+            <div className="space-y-4 px-2 sm:px-0">
+                <Card className='border-none'>
+                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     const handleUpdateProfile = async () => {
         setUpdatingProfile(true)
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            const response = await fetch('/api/account/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editName,
+                    email: editEmail,
+                    phone: editPhone,
+                    location: editLocation,
+                    bio: editBio,
+                    website: editWebsite
+                })
+            })
             
-            setProfile(prev => ({
-                ...prev,
-                name: editName,
-                email: editEmail,
-                phone: editPhone,
-                location: editLocation,
-                bio: editBio,
-                website: editWebsite
-            }))
-            
-            setShowProfileDialog(false)
-            alert('Profile updated successfully')
+            if (response.ok) {
+                const updatedProfile = await response.json()
+                setProfile(updatedProfile)
+                setShowProfileDialog(false)
+                alert('Profile updated successfully')
+            } else {
+                throw new Error('Failed to update profile')
+            }
         } catch {
             alert('Failed to update profile')
         } finally {
@@ -363,8 +386,8 @@ export default function AccountPage() {
                     <div className="space-y-4 py-4">
                         <div className="flex flex-col items-center gap-4">
                             <Avatar className="h-24 w-24">
-                                <AvatarImage src={profile.avatar} alt={profile.name} />
-                                <AvatarFallback>{profile.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                <AvatarImage src={profile?.avatar} alt={profile?.name || ''} />
+                                <AvatarFallback>{profile?.name.split(' ').map(n => n[0]).join('') || 'U'}</AvatarFallback>
                             </Avatar>
                             <div className="flex gap-2">
                                 <Button variant="outline" size="sm">

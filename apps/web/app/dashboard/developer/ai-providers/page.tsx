@@ -32,43 +32,7 @@ export default function AIProvidersPage() {
     const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null)
 
     // AI Providers state
-    const [providers, setProviders] = useState<AIProvider[]>([
-        {
-            id: '1',
-            name: 'OpenAI GPT-4',
-            type: 'openai',
-            model: 'gpt-4',
-            apiKey: 'sk-...abc123',
-            status: 'connected',
-            usage: 85420,
-            limit: 100000,
-            createdAt: '2024-01-15',
-            lastUsed: '2024-03-14'
-        },
-        {
-            id: '2',
-            name: 'Anthropic Claude',
-            type: 'anthropic',
-            model: 'claude-3-sonnet',
-            apiKey: 'sk-ant-...def456',
-            status: 'connected',
-            usage: 32150,
-            limit: 100000,
-            createdAt: '2024-02-01',
-            lastUsed: '2024-03-13'
-        },
-        {
-            id: '3',
-            name: 'Google Gemini',
-            type: 'google',
-            model: 'gemini-pro',
-            apiKey: 'AIza...ghi789',
-            status: 'error',
-            usage: 0,
-            limit: 100000,
-            createdAt: '2024-02-15'
-        }
-    ])
+    const [providers, setProviders] = useState<AIProvider[]>([])
 
     const handleAddProvider = async () => {
         setLoading(true)

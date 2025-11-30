@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronRight,
   User,
-  UserCircle,
   Shield,
   Palette,
   Accessibility,
@@ -64,6 +63,7 @@ const data: {
     { title: "Appearance", url: "/dashboard/appearance", icon: Palette },
     { title: "Notifications", url: "/dashboard/notifications", icon: Bell },
     { title: "Passkeys", url: "/dashboard/passkeys", icon: Key },
+    { title: "Quick Access", url: "/dashboard/quick-access", icon: Monitor },
 
     { category: "Account Management" },
     {

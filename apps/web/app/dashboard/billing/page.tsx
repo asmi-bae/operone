@@ -7,10 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, CreditCard, Calendar, Download, AlertTriangle, Check, Zap, Crown, Star } from 'lucide-react'
+import { Loader2, CreditCard, Calendar, AlertTriangle, Crown, Star } from 'lucide-react'
 
 interface BillingPlan {
     id: string
@@ -22,22 +20,6 @@ interface BillingPlan {
     current?: boolean
 }
 
-interface BillingInvoice {
-    id: string
-    number: string
-    date: string
-    amount: number
-    status: 'paid' | 'pending' | 'failed'
-    downloadUrl: string
-}
-
-interface BillingSetting {
-    id: string
-    title: string
-    description: string
-    enabled: boolean
-}
-
 export default function BillingPage() {
     const [loading, setLoading] = useState(false)
     const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
@@ -47,114 +29,7 @@ export default function BillingPage() {
     const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly')
 
     // Billing plans state
-    const [plans] = useState<BillingPlan[]>([
-        {
-            id: 'free',
-            name: 'Free',
-            price: 0,
-            interval: 'monthly',
-            features: [
-                '5 projects',
-                'Basic support',
-                '1GB storage',
-                'Community access'
-            ],
-            current: true
-        },
-        {
-            id: 'pro',
-            name: 'Pro',
-            price: 29,
-            interval: 'monthly',
-            features: [
-                'Unlimited projects',
-                'Priority support',
-                '100GB storage',
-                'Advanced features',
-                'Team collaboration',
-                'API access'
-            ],
-            popular: true
-        },
-        {
-            id: 'enterprise',
-            name: 'Enterprise',
-            price: 99,
-            interval: 'monthly',
-            features: [
-                'Everything in Pro',
-                'Unlimited storage',
-                'Dedicated support',
-                'Custom integrations',
-                'SLA guarantee',
-                'Advanced security',
-                'Custom branding'
-            ]
-        }
-    ])
-
-    // Payment methods state
-    const paymentMethods = [
-        {
-            id: '1',
-            type: 'card',
-            last4: '4242',
-            brand: 'Visa',
-            expiryMonth: 12,
-            expiryYear: 2025,
-            isDefault: true
-        }
-    ]
-
-    // Invoices state
-    const [invoices] = useState<BillingInvoice[]>([
-        {
-            id: '1',
-            number: 'INV-2024-001',
-            date: '2024-01-15',
-            amount: 29,
-            status: 'paid',
-            downloadUrl: '/invoices/inv-2024-001.pdf'
-        },
-        {
-            id: '2',
-            number: 'INV-2024-002',
-            date: '2024-02-15',
-            amount: 29,
-            status: 'paid',
-            downloadUrl: '/invoices/inv-2024-002.pdf'
-        },
-        {
-            id: '3',
-            number: 'INV-2024-003',
-            date: '2024-03-15',
-            amount: 29,
-            status: 'pending',
-            downloadUrl: '/invoices/inv-2024-003.pdf'
-        }
-    ])
-
-    // Billing settings state
-    const [billingSettings, setBillingSettings] = useState<BillingSetting[]>([
-        {
-            id: 'auto-renew',
-            title: 'Auto-renew Subscription',
-            description: 'Automatically renew your subscription when it expires',
-            enabled: true
-        },
-        {
-            id: 'email-invoices',
-            title: 'Email Invoices',
-            description: 'Receive invoices via email when they are generated',
-            enabled: true
-        },
-        {
-            id: 'payment-reminders',
-            title: 'Payment Reminders',
-            description: 'Get notified before your payment method expires',
-            enabled: true
-        }
-    ])
+    const [plans] = useState<BillingPlan[]>([])
 
     const handleUpgradePlan = async () => {
         setLoading(true)
@@ -191,20 +66,6 @@ export default function BillingPage() {
         }
     }
 
-    const handleSettingToggle = async (settingId: string, enabled: boolean) => {
-        setBillingSettings(prev => 
-            prev.map(setting => 
-                setting.id === settingId 
-                    ? { ...setting, enabled }
-                    : setting
-            )
-        )
-    }
-
-    const handleDownloadInvoice = (invoiceId: string) => {
-        alert(`Downloading invoice ${invoiceId}`)
-    }
-
     const getPlanPrice = (plan: BillingPlan) => {
         if (billingInterval === 'yearly' && plan.price > 0) {
             const yearlyPrice = plan.price * 12 * 0.8 // 20% discount for yearly
@@ -236,34 +97,12 @@ export default function BillingPage() {
                                 <p className="text-sm text-muted-foreground">Your current subscription and usage</p>
                             </div>
                             <div className="rounded-md border">
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="text-lg font-semibold">Free Plan</h4>
-                                                <Badge variant="secondary">Current</Badge>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                $0/month • Billed monthly
-                                            </p>
-                                            <div className="mt-4 space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span>Projects used</span>
-                                                    <span>3 / 5</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span>Storage used</span>
-                                                    <span>512 MB / 1 GB</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <Button onClick={() => setShowUpgradeDialog(true)} className="border-b-2">
-                                                <Zap className="h-4 w-4 mr-2" />
-                                                Upgrade Plan
-                                            </Button>
-                                        </div>
-                                    </div>
+                                <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <Crown className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold">No active subscription</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Choose a plan to get started with premium features
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -289,51 +128,14 @@ export default function BillingPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {plans.map((plan) => (
-                                    <div
-                                        key={plan.id}
-                                        className={`relative rounded-lg border p-6 ${
-                                            plan.popular ? 'border-primary ring-2 ring-primary/20' : 'border-border'
-                                        } ${plan.current ? 'bg-muted/30' : ''}`}
-                                    >
-                                        {plan.popular && (
-                                            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">
-                                                Popular
-                                            </Badge>
-                                        )}
-                                        <div className="text-center">
-                                            <h4 className="text-lg font-semibold">{plan.name}</h4>
-                                            <div className="mt-2">
-                                                <span className="text-3xl font-bold">${getPlanPrice(plan)}</span>
-                                                <span className="text-muted-foreground">
-                                                    /{billingInterval === 'yearly' ? 'year' : 'month'}
-                                                </span>
-                                            </div>
-                                            {billingInterval === 'yearly' && plan.price > 0 && (
-                                                <p className="text-sm text-green-600 mt-1">
-                                                    Save ${(plan.price * 12 - getPlanPrice(plan))}/year
-                                                </p>
-                                            )}
-                                        </div>
-                                        <ul className="mt-6 space-y-3">
-                                            {plan.features.map((feature, index) => (
-                                                <li key={index} className="flex items-center gap-2 text-sm">
-                                                    <Check className="h-4 w-4 text-green-500" />
-                                                    {feature}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        <Button
-                                            className="w-full mt-6"
-                                            variant={plan.current ? "outline" : "default"}
-                                            disabled={plan.current}
-                                            onClick={() => !plan.current && handleUpgradePlan()}
-                                        >
-                                            {plan.current ? 'Current Plan' : 'Upgrade'}
-                                        </Button>
-                                    </div>
-                                ))}
+                            <div className="rounded-md border">
+                                <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <Star className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold">No plans available</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Contact support to configure billing plans
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -352,29 +154,13 @@ export default function BillingPage() {
                                 </Button>
                             </div>
                             <div className="rounded-md border">
-                                {paymentMethods.map((method, index) => (
-                                    <div key={method.id} className={`flex items-center justify-between p-4 ${index !== paymentMethods.length - 1 ? 'border-b' : ''}`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                                <CreditCard className="h-5 w-5" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">
-                                                    {method.brand} •••• {method.last4}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Expires {method.expiryMonth}/{method.expiryYear}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {method.isDefault && (
-                                                <Badge variant="default" className="text-xs">Default</Badge>
-                                            )}
-                                            <Button variant="outline" size="sm">Remove</Button>
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold">No payment methods</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Add a payment method to manage your subscription
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -388,34 +174,13 @@ export default function BillingPage() {
                                 <p className="text-sm text-muted-foreground">View and download your invoices</p>
                             </div>
                             <div className="rounded-md border">
-                                {invoices.map((invoice, index) => (
-                                    <div key={invoice.id} className={`flex items-center justify-between p-4 ${index !== invoices.length - 1 ? 'border-b' : ''}`}>
-                                        <div>
-                                            <p className="font-medium">{invoice.number}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {new Date(invoice.date).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                })}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-medium">${invoice.amount}</span>
-                                            <Badge variant={invoice.status === 'paid' ? 'default' : invoice.status === 'pending' ? 'secondary' : 'destructive'}>
-                                                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                                            </Badge>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleDownloadInvoice(invoice.id)}
-                                            >
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Download
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold">No billing history</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Your invoices will appear here once you have an active subscription
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -429,18 +194,13 @@ export default function BillingPage() {
                                 <p className="text-sm text-muted-foreground">Configure your billing preferences</p>
                             </div>
                             <div className="rounded-md border">
-                                {billingSettings.map((setting, index) => (
-                                    <div key={setting.id} className={`flex items-center justify-between p-4 ${index !== billingSettings.length - 1 ? 'border-b' : ''}`}>
-                                        <div className="flex-1">
-                                            <p className="font-medium">{setting.title}</p>
-                                            <p className="text-sm text-muted-foreground mt-1">{setting.description}</p>
-                                        </div>
-                                        <Switch
-                                            checked={setting.enabled}
-                                            onCheckedChange={(checked) => handleSettingToggle(setting.id, checked)}
-                                        />
-                                    </div>
-                                ))}
+                                <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-semibold">No billing settings</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Billing settings will be available once you have an active subscription
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

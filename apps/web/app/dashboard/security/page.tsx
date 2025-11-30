@@ -1,15 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Shield, Key, Smartphone, Mail, AlertTriangle, Check, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { Loader2, Shield, Smartphone, Mail, AlertTriangle, Check, RefreshCw } from 'lucide-react'
 
 interface SecuritySetting {
     id: string
@@ -28,102 +27,68 @@ interface Session {
 }
 
 export default function SecurityPage() {
-    const [changingPassword, setChangingPassword] = useState(false)
     const [enabling2FA, setEnabling2FA] = useState(false)
-    const [showPasswordDialog, setShowPasswordDialog] = useState(false)
     const [show2FADialog, setShow2FADialog] = useState(false)
     const [showSessionDialog, setShowSessionDialog] = useState(false)
     const [selectedSession, setSelectedSession] = useState<Session | null>(null)
 
-    // Form states
-    const [currentPassword, setCurrentPassword] = useState('')
-    const [newPassword, setNewPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-    const [showNewPassword, setShowNewPassword] = useState(false)
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    // Security settings state - will be fetched from API
+    const [securitySettings, setSecuritySettings] = useState<SecuritySetting[]>([])
+    const [settingsLoading, setSettingsLoading] = useState(true)
 
-    // Security settings state
-    const [securitySettings, setSecuritySettings] = useState<SecuritySetting[]>([
-        {
-            id: '2fa',
-            title: 'Two-Factor Authentication',
-            description: 'Add an extra layer of security to your account',
-            enabled: false,
-            lastUpdated: undefined
-        },
-        {
-            id: 'email-verification',
-            title: 'Email Verification',
-            description: 'Require email verification for sensitive actions',
-            enabled: true,
-            lastUpdated: '2024-01-15'
-        },
-        {
-            id: 'session-timeout',
-            title: 'Auto Session Timeout',
-            description: 'Automatically log out after period of inactivity',
-            enabled: true,
-            lastUpdated: '2024-01-10'
-        },
-        {
-            id: 'login-alerts',
-            title: 'Login Alerts',
-            description: 'Get notified when someone logs into your account',
-            enabled: false,
-            lastUpdated: undefined
-        }
-    ])
+    const [activeSessions, setActiveSessions] = useState<Session[]>([])
+    const [sessionsLoading, setSessionsLoading] = useState(true)
 
-    const [activeSessions, setActiveSessions] = useState<Session[]>([
-        {
-            id: '1',
-            device: 'Chrome on MacBook Pro',
-            location: 'San Francisco, CA',
-            lastActive: '2 minutes ago',
-            current: true
-        },
-        {
-            id: '2',
-            device: 'Safari on iPhone',
-            location: 'San Francisco, CA',
-            lastActive: '1 hour ago',
-            current: false
-        },
-        {
-            id: '3',
-            device: 'Firefox on Windows PC',
-            location: 'New York, NY',
-            lastActive: '3 days ago',
-            current: false
-        }
-    ])
-
-    const handlePasswordChange = async () => {
-        if (newPassword !== confirmPassword) {
-            alert('Passwords do not match')
-            return
+    // Fetch security data on component mount
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch('/api/security/settings')
+                if (response.ok) {
+                    const data = await response.json()
+                    setSecuritySettings(data.settings || [])
+                }
+            } catch {
+                console.error('Failed to fetch security settings')
+            } finally {
+                setSettingsLoading(false)
+            }
         }
 
-        setChangingPassword(true)
-        try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            
-            // Reset form
-            setCurrentPassword('')
-            setNewPassword('')
-            setConfirmPassword('')
-            setShowPasswordDialog(false)
-            
-            alert('Password changed successfully')
-        } catch {
-            alert('Failed to change password')
-        } finally {
-            setChangingPassword(false)
+        const fetchSessions = async () => {
+            try {
+                const response = await fetch('/api/security/sessions')
+                if (response.ok) {
+                    const data = await response.json()
+                    setActiveSessions(data.sessions || [])
+                }
+            } catch {
+                console.error('Failed to fetch sessions')
+            } finally {
+                setSessionsLoading(false)
+            }
         }
+
+        fetchSettings()
+        fetchSessions()
+    }, [])
+
+    // Show loading state while data is being fetched
+    if (settingsLoading || sessionsLoading) {
+        return (
+            <div className="space-y-4 px-2 sm:px-0">
+                <Card className='border-none'>
+                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
 
+    
     const handle2FAToggle = async (settingId: string, enabled: boolean) => {
         if (settingId === '2fa' && enabled) {
             setShow2FADialog(true)
@@ -203,27 +168,7 @@ export default function SecurityPage() {
                         </div>
 
                         {/* Password Section */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <h3 className="font-medium flex items-center gap-2">
-                                        <Key className="h-5 w-5" />
-                                        Password
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">Change your account password</p>
-                                </div>
-                                <Button onClick={() => setShowPasswordDialog(true)} variant="outline" className="border-b-2">
-                                    Change Password
-                                </Button>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                                <div>
-                                    <p className="font-medium">Last changed</p>
-                                    <p className="text-sm text-muted-foreground">30 days ago</p>
-                                </div>
-                            </div>
-                        </div>
-
+                        
                         {/* Two-Factor Authentication */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -387,100 +332,7 @@ export default function SecurityPage() {
                 </CardContent>
             </Card>
 
-            {/* Change Password Dialog */}
-            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Change Password</DialogTitle>
-                        <DialogDescription>
-                            Enter your current password and choose a new one
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="current-password">Current Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="current-password"
-                                    type={showCurrentPassword ? "text" : "password"}
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                    placeholder="Enter current password"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                >
-                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                            <Label htmlFor="new-password">New Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="new-password"
-                                    type={showNewPassword ? "text" : "password"}
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Enter new password"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                                    onClick={() => setShowNewPassword(!showNewPassword)}
-                                >
-                                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                            <Label htmlFor="confirm-password">Confirm New Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="confirm-password"
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Confirm new password"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                >
-                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handlePasswordChange} disabled={changingPassword}>
-                            {changingPassword ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Changing...
-                                </>
-                            ) : (
-                                'Change Password'
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
+            
             {/* 2FA Setup Dialog */}
             <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
                 <DialogContent>

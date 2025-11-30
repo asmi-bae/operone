@@ -48,158 +48,13 @@ export default function DeveloperSettingsPage() {
     const [showResetDialog, setShowResetDialog] = useState(false)
 
     // Developer settings state
-    const [settings, setSettings] = useState<DeveloperSetting[]>([
-        {
-            id: 'debug-mode',
-            category: 'General',
-            title: 'Debug Mode',
-            description: 'Enable debug logging and verbose output',
-            enabled: false,
-            type: 'toggle'
-        },
-        {
-            id: 'auto-save',
-            category: 'General',
-            title: 'Auto-save',
-            description: 'Automatically save changes while editing',
-            enabled: true,
-            type: 'toggle'
-        },
-        {
-            id: 'api-version',
-            category: 'API',
-            title: 'API Version',
-            description: 'Default API version for requests',
-            enabled: true,
-            value: 'v1',
-            options: ['v1', 'v2', 'beta'],
-            type: 'select'
-        },
-        {
-            id: 'rate-limit',
-            category: 'API',
-            title: 'Rate Limit',
-            description: 'Maximum requests per minute',
-            enabled: true,
-            value: 1000,
-            type: 'slider'
-        },
-        {
-            id: 'timeout',
-            category: 'API',
-            title: 'Request Timeout',
-            description: 'Timeout for API requests in seconds',
-            enabled: true,
-            value: 30,
-            type: 'slider'
-        },
-        {
-            id: 'webhook-retries',
-            category: 'Webhooks',
-            title: 'Webhook Retries',
-            description: 'Number of retry attempts for failed webhooks',
-            enabled: true,
-            value: 3,
-            type: 'slider'
-        },
-        {
-            id: 'cors-origins',
-            category: 'Security',
-            title: 'CORS Origins',
-            description: 'Allowed origins for cross-origin requests',
-            enabled: true,
-            value: 'https://localhost:3000,https://dashboard.operone.com',
-            type: 'textarea'
-        },
-        {
-            id: 'api-key-rotation',
-            category: 'Security',
-            title: 'API Key Rotation',
-            description: 'Automatically rotate API keys every 90 days',
-            enabled: false,
-            type: 'toggle'
-        },
-        {
-            id: 'audit-logging',
-            category: 'Security',
-            title: 'Audit Logging',
-            description: 'Log all API requests and changes',
-            enabled: true,
-            type: 'toggle'
-        },
-        {
-            id: 'database-pool',
-            category: 'Database',
-            title: 'Connection Pool Size',
-            description: 'Maximum number of database connections',
-            enabled: true,
-            value: 10,
-            type: 'slider'
-        },
-        {
-            id: 'query-timeout',
-            category: 'Database',
-            title: 'Query Timeout',
-            description: 'Timeout for database queries in seconds',
-            enabled: true,
-            value: 30,
-            type: 'slider'
-        }
-    ])
+    const [settings, setSettings] = useState<DeveloperSetting[]>([])
 
     // API configurations state
-    const [apiConfigs] = useState<APIConfiguration[]>([
-        {
-            id: '1',
-            name: 'Main API',
-            endpoint: 'https://api.operone.com',
-            version: 'v1',
-            status: 'active',
-            rateLimit: 1000,
-            timeout: 30,
-            retries: 3
-        },
-        {
-            id: '2',
-            name: 'Beta API',
-            endpoint: 'https://beta-api.operone.com',
-            version: 'v2',
-            status: 'active',
-            rateLimit: 500,
-            timeout: 45,
-            retries: 2
-        },
-        {
-            id: '3',
-            name: 'Legacy API',
-            endpoint: 'https://legacy-api.operone.com',
-            version: 'v0',
-            status: 'deprecated',
-            rateLimit: 100,
-            timeout: 60,
-            retries: 1
-        }
-    ])
+    const [apiConfigs] = useState<APIConfiguration[]>([])
 
     // Webhook configurations state
-    const [webhooks] = useState<WebhookConfig[]>([
-        {
-            id: '1',
-            url: 'https://webhook.example.com/operone',
-            events: ['user.created', 'project.updated'],
-            secret: 'whsec_abc123...',
-            active: true,
-            lastTriggered: '2024-03-14T10:30:00Z'
-        },
-        {
-            id: '2',
-            url: 'https://hooks.slack.com/services/...',
-            events: ['deployment.started', 'deployment.completed'],
-            secret: 'whsec_def456...',
-            active: true,
-            lastTriggered: '2024-03-13T14:20:00Z'
-        }
-    ])
+    const [webhooks] = useState<WebhookConfig[]>([])
 
     const handleSettingChange = async (settingId: string, value: string | boolean | number) => {
         setSettings(prev => 
@@ -252,7 +107,7 @@ export default function DeveloperSettingsPage() {
                         'database-pool': 10,
                         'query-timeout': 30
                     }
-                    return { ...setting, value: defaults[setting.id] ?? setting.value }
+                    return { ...setting, value: defaults[setting.id] ?? setting.value ?? '' }
                 })
             )
             
@@ -291,6 +146,33 @@ export default function DeveloperSettingsPage() {
         acc[setting.category].push(setting)
         return acc
     }, {} as Record<string, DeveloperSetting[]>)
+
+    // Early return if no settings
+    if (settings.length === 0) {
+        return (
+            <div className="space-y-4 px-2 sm:px-0">
+                <Card className='border-none'>
+                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-b pb-4">
+                                <div className="space-y-1">
+                                    <h1 className="text-2xl font-bold">Developer Settings</h1>
+                                    <p className="text-muted-foreground">Configure your development environment and API settings</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-center justify-center p-8 text-center">
+                                <Settings className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold">No developer settings configured</h3>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Add your first developer settings to configure your environment
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-4 px-2 sm:px-0">

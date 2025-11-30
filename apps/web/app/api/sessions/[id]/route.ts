@@ -1,45 +1,25 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth()
-
-        if (!session?.user?.email) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Get current session token
-        const cookieStore = await cookies()
-        const currentSessionToken = cookieStore.get('next-auth.session-token')?.value || 
-                                   cookieStore.get('__Secure-next-auth.session-token')?.value
+        const { id } = await params
 
-        // Verify the session belongs to the user
-        const sessionToDelete = await prisma.session.findUnique({
-            where: { id: params.id },
-            include: { user: true },
-        })
-
-        if (!sessionToDelete || sessionToDelete.user.email !== session.user.email) {
-            return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-        }
-
-        // Prevent deleting current session
-        if (sessionToDelete.sessionToken === currentSessionToken) {
-            return NextResponse.json(
-                { error: 'Cannot revoke current session' },
-                { status: 400 }
-            )
-        }
-
-        // Delete the session
+        // Verify the session belongs to the user before deleting
         await prisma.session.delete({
-            where: { id: params.id },
+            where: {
+                id,
+                userId: session.user.id
+            }
         })
 
         return NextResponse.json({ success: true })

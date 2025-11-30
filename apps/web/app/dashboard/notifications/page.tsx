@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -46,121 +46,81 @@ export default function NotificationsPage() {
     const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
     const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all')
 
-    // Notifications state
-    const [notifications, setNotifications] = useState<Notification[]>([
-        {
-            id: '1',
-            type: 'success',
-            title: 'Payment Successful',
-            message: 'Your monthly subscription payment has been processed successfully.',
-            timestamp: '2024-03-15T10:30:00Z',
-            read: false,
-            action: 'View Invoice'
-        },
-        {
-            id: '2',
-            type: 'info',
-            title: 'New Feature Available',
-            message: 'Check out our new dashboard analytics feature with improved insights.',
-            timestamp: '2024-03-14T14:20:00Z',
-            read: false,
-            action: 'Learn More'
-        },
-        {
-            id: '3',
-            type: 'warning',
-            title: 'Storage Limit Approaching',
-            message: 'You have used 85% of your storage quota. Consider upgrading your plan.',
-            timestamp: '2024-03-13T09:15:00Z',
-            read: true,
-            action: 'Upgrade Plan'
-        },
-        {
-            id: '4',
-            type: 'error',
-            title: 'Payment Failed',
-            message: 'We were unable to process your payment. Please update your payment method.',
-            timestamp: '2024-03-12T16:45:00Z',
-            read: true,
-            action: 'Update Payment'
-        },
-        {
-            id: '5',
-            type: 'info',
-            title: 'Security Alert',
-            message: 'A new device signed into your account from New York, NY.',
-            timestamp: '2024-03-11T11:30:00Z',
-            read: true,
-            action: 'Review Activity'
-        }
-    ])
+    // Notifications state - will be fetched from API
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [notificationsLoading, setNotificationsLoading] = useState(true)
 
-    // Notification preferences state
-    const [preferences, setPreferences] = useState<NotificationPreference[]>([
-        {
-            id: 'account',
-            category: 'Account',
-            title: 'Account Activity',
-            description: 'Sign-ins, password changes, and security updates',
-            email: true,
-            push: true,
-            inApp: true
-        },
-        {
-            id: 'billing',
-            category: 'Billing',
-            title: 'Billing & Payments',
-            description: 'Payment confirmations, failed payments, and subscription updates',
-            email: true,
-            push: false,
-            inApp: true
-        },
-        {
-            id: 'projects',
-            category: 'Projects',
-            title: 'Project Updates',
-            description: 'Project invitations, updates, and collaboration requests',
-            email: false,
-            push: true,
-            inApp: true
-        },
-        {
-            id: 'system',
-            category: 'System',
-            title: 'System Notifications',
-            description: 'Maintenance, downtime, and system updates',
-            email: false,
-            push: false,
-            inApp: true
-        },
-        {
-            id: 'marketing',
-            category: 'Marketing',
-            title: 'Marketing Communications',
-            description: 'Product updates, newsletters, and promotional content',
-            email: true,
-            push: false,
-            inApp: false
-        }
-    ])
+    // Notification preferences state - will be fetched from API
+    const [preferences, setPreferences] = useState<NotificationPreference[]>([])
+    const [preferencesLoading, setPreferencesLoading] = useState(true)
 
-    // Notification rules state
-    const [rules, setRules] = useState<NotificationRule[]>([
-        {
-            id: '1',
-            name: 'High Priority Only',
-            conditions: ['Priority: High', 'Type: Error'],
-            actions: ['Send Push Notification', 'Send Email'],
-            enabled: true
-        },
-        {
-            id: '2',
-            name: 'Weekend Quiet Hours',
-            conditions: ['Time: Weekend', 'Priority: Normal'],
-            actions: ['Queue for Monday'],
-            enabled: true
+    // Notification rules state - will be fetched from API
+    const [rules, setRules] = useState<NotificationRule[]>([])
+    const [rulesLoading, setRulesLoading] = useState(true)
+
+    // Fetch notifications data on component mount
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const response = await fetch('/api/notifications')
+                if (response.ok) {
+                    const data = await response.json()
+                    setNotifications(data.notifications || [])
+                }
+            } catch {
+                console.error('Failed to fetch notifications')
+            } finally {
+                setNotificationsLoading(false)
+            }
         }
-    ])
+
+        const fetchPreferences = async () => {
+            try {
+                const response = await fetch('/api/notifications/preferences')
+                if (response.ok) {
+                    const data = await response.json()
+                    setPreferences(data.preferences || [])
+                }
+            } catch {
+                console.error('Failed to fetch notification preferences')
+            } finally {
+                setPreferencesLoading(false)
+            }
+        }
+
+        const fetchRules = async () => {
+            try {
+                const response = await fetch('/api/notifications/rules')
+                if (response.ok) {
+                    const data = await response.json()
+                    setRules(data.rules || [])
+                }
+            } catch {
+                console.error('Failed to fetch notification rules')
+            } finally {
+                setRulesLoading(false)
+            }
+        }
+
+        fetchNotifications()
+        fetchPreferences()
+        fetchRules()
+    }, [])
+
+    // Show loading state while data is being fetched
+    if (notificationsLoading || preferencesLoading || rulesLoading) {
+        return (
+            <div className="space-y-4 px-2 sm:px-0">
+                <Card className='border-none'>
+                    <CardContent className="w-full border-b px-2 sm:px-0 py-6">
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     const handleMarkAsRead = (notificationId: string) => {
         setNotifications(prev =>
