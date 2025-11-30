@@ -23,7 +23,8 @@ export function buildCSP(config: SecurityHeadersConfig = {}): string {
     'default-src': ["'self'"],
     'script-src': [
       "'self'",
-      ...(isDevelopment ? ["'unsafe-eval'", "'unsafe-inline'"] : []),
+      "'unsafe-eval'",
+      "'unsafe-inline'",
       ...allowedScriptSources,
     ],
     'style-src': ["'self'", "'unsafe-inline'"], // unsafe-inline needed for styled-components, Tailwind
