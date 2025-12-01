@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { PasskeyIcon } from '@/components/icons'
+import { createFetchHeaders } from '@/lib/utils/cookies'
 
 export function PasskeyRegister() {
     const [isLoading, setIsLoading] = useState(false)
@@ -24,6 +25,7 @@ export function PasskeyRegister() {
             // Get registration options from server
             const optionsResponse = await fetch('/api/webauthn/register/options', {
                 method: 'POST',
+                headers: createFetchHeaders(),
             })
 
             if (!optionsResponse.ok) {
@@ -38,9 +40,7 @@ export function PasskeyRegister() {
             // Verify registration with server
             const verificationResponse = await fetch('/api/webauthn/register/verify', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: createFetchHeaders(),
                 body: JSON.stringify({
                     response: registrationResponse,
                     challenge: options.challenge,

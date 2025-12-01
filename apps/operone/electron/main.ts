@@ -82,6 +82,7 @@ function createWindow() {
 
     if (VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(VITE_DEV_SERVER_URL)
+      // Only open DevTools in development
       mainWindow.webContents.openDevTools()
     } else {
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
@@ -277,9 +278,20 @@ function setupIPCHandlers() {
 
   // Authentication
   ipcMain.handle('auth:login', async () => {
-    // Open browser to web app login page with desktop parameter
+    // For production builds, show a message instead of opening localhost
+    if (!VITE_DEV_SERVER_URL) {
+      // Production mode - no external login server available
+      return { 
+        success: false, 
+        message: 'Authentication server not available in production build. Please use the web version for authentication.',
+        showOfflineMode: true
+      }
+    }
+    
+    // Development mode - open browser to web app login page with desktop parameter
     const loginUrl = 'http://localhost:3000/login?from=desktop'
     shell.openExternal(loginUrl)
+    return { success: true, message: 'Opening login page in browser...' }
   })
 
   ipcMain.handle('auth:logout', async () => {
@@ -290,15 +302,6 @@ function setupIPCHandlers() {
   })
 
   ipcMain.handle('auth:getUser', async () => {
-    // Return mock user in test environment
-    if (process.env.NODE_ENV === 'test') {
-      return {
-        id: 'test-user',
-        name: 'Test User',
-        email: 'test@example.com',
-        image: null
-      }
-    }
     // Return stored user data if available
     const user = store.get('user')
     return user || null

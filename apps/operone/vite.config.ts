@@ -76,18 +76,39 @@ export default defineConfig({
     host: true,
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       external: ['better-sqlite3', '@repo/ai-engine', 'fs', 'path', 'os', 'child_process', '@repo/mcp-tools'],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            // React ecosystem
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
               return 'vendor-react';
             }
-            if (id.includes('@radix-ui') || id.includes('lucide-react')) {
-              return 'vendor-ui';
+            // UI libraries
+            if (id.includes('@radix-ui')) {
+              return 'vendor-radix';
             }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            // AI/ML libraries
+            if (id.includes('ai') || id.includes('shiki')) {
+              return 'vendor-ai';
+            }
+            // Motion/animation
+            if (id.includes('motion') || id.includes('embla-carousel')) {
+              return 'vendor-motion';
+            }
+            // Other vendors
             return 'vendor';
           }
         },

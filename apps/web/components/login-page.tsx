@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { signIn, useSession } from 'next-auth/react'
 import { PasskeyIcon } from '@/components/icons'
 import { toast } from 'sonner'
+import { createFetchHeaders } from '@/lib/utils/cookies'
 
 export default function LoginPage() {
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false)
@@ -46,9 +47,7 @@ export default function LoginPage() {
             // Get authentication options from server
             const optionsResponse = await fetch('/api/webauthn/authenticate/options', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: createFetchHeaders(),
                 body: JSON.stringify({ email: undefined }),
             })
 
@@ -67,8 +66,8 @@ export default function LoginPage() {
             } catch (webauthnError) {
                 // Handle WebAuthn errors silently - only show toast
                 if (webauthnError instanceof Error) {
-                    if (webauthnError.name === 'NotAllowedError' || 
-                        webauthnError.message.includes('not allowed') || 
+                    if (webauthnError.name === 'NotAllowedError' ||
+                        webauthnError.message.includes('not allowed') ||
                         webauthnError.message.includes('timed out') ||
                         webauthnError.message.includes('cancelled')) {
                         toast.info('Authentication was cancelled.')
@@ -169,9 +168,9 @@ export default function LoginPage() {
                         )}
                     </Button>
 
-                {/* Not Implement Properly , API DOSE NOT WORKING */}
+                    {/* Not Implement Properly , API DOSE NOT WORKING */}
 
-                {/* 
+                    {/* 
                     <Button
                         onClick={handleGithubLogin}
                         disabled={isGithubLoading}

@@ -11,6 +11,7 @@ import { Loader2, Pencil, Trash2, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { PasskeyIcon } from '@/components/icons'
 import { startRegistration } from '@simplewebauthn/browser'
+import { createFetchHeaders } from '@/lib/utils/cookies'
 
 interface Passkey {
     id: string
@@ -53,6 +54,7 @@ export function PasskeyManagement() {
         try {
             const optionsResponse = await fetch('/api/webauthn/register/options', {
                 method: 'POST',
+                headers: createFetchHeaders(),
             })
 
             if (!optionsResponse.ok) throw new Error('Failed to get registration options')
@@ -62,7 +64,7 @@ export function PasskeyManagement() {
 
             const verificationResponse = await fetch('/api/webauthn/register/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createFetchHeaders(),
                 body: JSON.stringify({
                     response: registrationResponse,
                     challenge: options.challenge,
@@ -86,7 +88,7 @@ export function PasskeyManagement() {
         try {
             const response = await fetch(`/api/passkeys/${editingPasskey.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createFetchHeaders(),
                 body: JSON.stringify({ name: newName.trim() }),
             })
 
@@ -106,6 +108,7 @@ export function PasskeyManagement() {
         try {
             const response = await fetch(`/api/passkeys/${deletingPasskey.id}`, {
                 method: 'DELETE',
+                headers: createFetchHeaders(),
             })
 
             if (response.ok) {

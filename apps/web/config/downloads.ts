@@ -1,35 +1,35 @@
 // GitHub repository configuration
 export const GITHUB_CONFIG = {
-  owner: process.env.NEXT_PUBLIC_GITHUB_REPO_OWNER || "operone",
-  repo: process.env.NEXT_PUBLIC_GITHUB_REPO_NAME || "operone",
+  owner: "the-shoaib2",
+  repo: "operone",
 } as const;
 
 // Static download configuration (used as fallback)
 export const DOWNLOAD_CONFIG = {
-  version: "1.0.0",
-  releaseDate: "November 29, 2025",
+  version: "0.0.1",
+  releaseDate: "December 1, 2025",
   platforms: {
     windows: {
       name: "Windows",
       description: "Windows 10 & 11 (64-bit)",
-      fileName: "Operone-Setup-1.0.0.exe",
-      url: "https://github.com/operone/operone/releases/download/v1.0.0/Operone-Setup-1.0.0.exe",
+      fileName: "Operone-Setup-0.0.1.exe",
+      url: "https://github.com/the-shoaib2/operone/releases/download/v0.0.1/Operone-Setup-0.0.1.exe",
       size: "125 MB",
       features: ["Windows 10/11 support", "Auto-updates", "System tray integration"],
     },
     mac: {
       name: "macOS",
-      description: "macOS 12.0+ (Universal)",
-      fileName: "Operone-1.0.0-universal.dmg",
-      url: "https://github.com/operone/operone/releases/download/v1.0.0/Operone-1.0.0-universal.dmg",
-      size: "98 MB",
-      features: ["Apple Silicon & Intel", "Notarized by Apple", "Menu bar integration"],
+      description: "macOS 12.0+ (Apple Silicon)",
+      fileName: "Operone-0.0.1-arm64.dmg",
+      url: "https://github.com/the-shoaib2/operone/releases/download/v0.0.1/Operone-0.0.1-arm64.dmg",
+      size: "300 MB",
+      features: ["Apple Silicon optimized", "Notarized by Apple", "Menu bar integration"],
     },
     linux: {
       name: "Linux",
       description: "AppImage (Universal)",
-      fileName: "Operone-1.0.0.AppImage",
-      url: "https://github.com/operone/operone/releases/download/v1.0.0/Operone-1.0.0.AppImage",
+      fileName: "Operone-0.0.1.AppImage",
+      url: "https://github.com/the-shoaib2/operone/releases/download/v0.0.1/Operone-0.0.1.AppImage",
       size: "112 MB",
       features: ["AppImage support", "Package manager", "System integration"],
     },

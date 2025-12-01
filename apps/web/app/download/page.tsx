@@ -19,10 +19,12 @@ import {
   Monitor,
   Command,
   Terminal,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DOWNLOAD_CONFIG, PlatformKey } from "@/config/downloads";
+import { PlatformKey } from "@/config/downloads";
+import { useLatestRelease } from "@/hooks/useLatestRelease";
 import { cn } from "@/lib/utils";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -881,6 +883,7 @@ export default function DownloadPage() {
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformKey | null>(
     null
   );
+  const { downloadConfig, loading, error, release } = useLatestRelease();
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -899,23 +902,81 @@ export default function DownloadPage() {
       icon: WindowsIcon,
       iconBg: "bg-blue-100 dark:bg-blue-900/20",
       iconColor: "text-blue-600 dark:text-blue-400",
-      ...DOWNLOAD_CONFIG.platforms.windows,
+      ...downloadConfig.platforms.windows,
     },
     {
       key: "mac" as const,
       icon: AppleIcon,
-      iconBg: "bg-gray-100 dark:bg-gray-900/20",
+      iconBg: "bg-gray-100/50 dark:bg-white-900/80",
       iconColor: "text-gray-600 dark:text-gray-400",
-      ...DOWNLOAD_CONFIG.platforms.mac,
+      ...downloadConfig.platforms.mac,
     },
     {
       key: "linux" as const,
       icon: LinuxIcon,
       iconBg: "bg-orange-100 dark:bg-orange-900/20",
       iconColor: "text-orange-600 dark:text-orange-400",
-      ...DOWNLOAD_CONFIG.platforms.linux,
+      ...downloadConfig.platforms.linux,
     },
   ];
+
+  const handleDownload = (platform: typeof platforms[0]) => {
+    // Track download event (you can add analytics here)
+    console.log(`Download initiated for ${platform.key}: ${platform.url}`);
+    
+    // Create a temporary link to trigger download
+    const link = document.createElement('a');
+    link.href = platform.url;
+    link.download = platform.fileName || '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen w-full">
+        <Header />
+        <main className="flex-1">
+          <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading latest release...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen w-full">
+        <Header />
+        <main className="flex-1">
+          <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto">
+              <div className="text-red-500 mb-4">
+                <Terminal className="w-12 h-12 mx-auto" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Unable to Load Release Info</h2>
+              <p className="text-muted-foreground mb-4">
+                We couldn&apos;t fetch the latest release information. Showing static download links instead.
+              </p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen w-full">
@@ -948,6 +1009,12 @@ export default function DownloadPage() {
                   <Globe className="w-3 h-3 mr-1" />
                   Cross-platform
                 </Badge>
+                {release && (
+                  <Badge variant="outline" className="px-3 py-1">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    Version {downloadConfig.version}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -969,7 +1036,7 @@ export default function DownloadPage() {
                       {isRecommended && (
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                           <Badge className="bg-primary text-primary-foreground hover:bg-primary">
-                            Recommended for you
+                            Recommended
                           </Badge>
                         </div>
                       )}
@@ -1003,14 +1070,17 @@ export default function DownloadPage() {
                         </div>
 
                         <div className="mt-auto space-y-3">
-                          <Button className="w-full" size="lg" asChild>
-                            <a href={platform.url} download>
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </a>
+                          <Button 
+                            className="w-full" 
+                            size="lg" 
+                            onClick={() => handleDownload(platform)}
+                            disabled={!platform.url}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            {platform.url ? 'Download' : 'Coming Soon'}
                           </Button>
                           <p className="text-xs text-muted-foreground text-center">
-                            Version {DOWNLOAD_CONFIG.version} • {platform.size}
+                            Version {downloadConfig.version} • {platform.size}
                           </p>
                         </div>
                       </CardContent>
@@ -1019,6 +1089,42 @@ export default function DownloadPage() {
                 })}
               </div>
             </div>
+
+            {/* Release Notes */}
+            {release && release.body && (
+              <div className="max-w-4xl mx-auto mb-16">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      What's New in Version {downloadConfig.version}
+                    </CardTitle>
+                    <CardDescription>
+                      Released on {downloadConfig.releaseDate}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      {release.body.split('\n').map((line, index) => {
+                        if (line.startsWith('## ')) {
+                          return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.slice(3)}</h3>;
+                        }
+                        if (line.startsWith('# ')) {
+                          return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{line.slice(2)}</h2>;
+                        }
+                        if (line.startsWith('- ')) {
+                          return <li key={index} className="ml-4">{line.slice(2)}</li>;
+                        }
+                        if (line.trim() === '') {
+                          return <br key={index} />;
+                        }
+                        return <p key={index} className="mb-2">{line}</p>;
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Features Section */}
             <div className="max-w-4xl mx-auto mb-16">

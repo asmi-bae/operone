@@ -98,6 +98,14 @@ function mapAssetsToPlatforms(assets: GitHubAsset[]): ReleaseData['platforms'] {
         fileName: asset.name,
       };
     }
+    // Linux (.zip, .tar.gz, etc.)
+    else if (name.includes('linux') && (name.endsWith('.zip') || name.endsWith('.tar.gz'))) {
+      platforms.linux = {
+        url: asset.browser_download_url,
+        size: formatFileSize(asset.size),
+        fileName: asset.name,
+      };
+    }
   }
 
   return platforms;

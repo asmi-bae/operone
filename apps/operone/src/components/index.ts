@@ -20,7 +20,7 @@ export * from './ui/context-menu'
 export * from './ui/data-table'
 export * from './ui/date-picker'
 export * from './ui/dialog'
-export * from './ui/drawer'
+// export * from './ui/drawer'  // Temporarily disabled - vaul dependency removed
 export * from './ui/dropdown-menu'
 export * from './ui/empty'
 export * from './ui/field'

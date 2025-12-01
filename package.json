@@ -61,6 +61,7 @@
     "prettier": "^3.7.3",
     "turbo": "^2.6.1",
     "typescript": "5.9.3",
+    "vite": "^6.4.1",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.9"
   },
@@ -75,7 +76,9 @@
   },
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["zod"]
+      "ignoreMissing": [
+        "zod"
+      ]
     }
   }
 }

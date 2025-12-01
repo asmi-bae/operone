@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 
+// API base URL - production builds don't have external API
+const API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null
+
 interface User {
     id: string
     email: string
@@ -93,8 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
 
         try {
+            // In production mode, skip token validation
+            if (!API_BASE_URL) {
+                console.log('Production mode - skipping token validation')
+                setError('Authentication not available in production build. Use offline mode.')
+                return
+            }
+            
             // Validate token with backend and get user data
-            const response = await fetch('http://localhost:3000/api/auth/validate-token', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/validate-token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token }),
@@ -127,7 +137,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkExistingWebSession = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/auth/session-token', {
+            // In production mode, skip session check
+            if (!API_BASE_URL) {
+                console.log('Production mode - skipping session check')
+                return
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/api/auth/session-token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
@@ -170,7 +186,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             // If no existing session, proceed with browser login
-            await window.electronAPI.login()
+            const loginResult = await window.electronAPI.login()
+            
+            // Handle production mode response
+            if (loginResult?.success === false) {
+                setError(loginResult.message || 'Login not available in production build')
+                setIsLoading(false)
+                return
+            }
+            
             // Reset loading state after browser opens - the actual authentication will happen via deep link callback
             setIsLoading(false)
         } catch (err) {
