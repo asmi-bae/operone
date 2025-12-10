@@ -112,31 +112,31 @@ export default defineConfig({
     rollupOptions: {
       external: ['better-sqlite3', '@repo/ai-engine', 'fs', 'path', 'os', 'child_process', '@repo/mcp-tools', 'ssh2', 'net', 'dgram'],
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // React ecosystem
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'vendor-react';
-            }
-            // UI libraries
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
-            }
-            // AI/ML libraries
-            if (id.includes('ai') || id.includes('shiki')) {
-              return 'vendor-ai';
-            }
-            // Motion/animation
-            if (id.includes('motion') || id.includes('embla-carousel')) {
-              return 'vendor-motion';
-            }
-            // Other vendors
-            return 'vendor';
-          }
-        },
+        // manualChunks(id) {
+        //   if (id.includes('node_modules')) {
+        //     // React ecosystem
+        //     if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+        //       return 'vendor-react';
+        //     }
+        //     // UI libraries
+        //     if (id.includes('@radix-ui')) {
+        //       return 'vendor-radix';
+        //     }
+        //     if (id.includes('lucide-react')) {
+        //       return 'vendor-icons';
+        //     }
+        //     // AI/ML libraries
+        //     if (id.includes('ai') || id.includes('shiki')) {
+        //       return 'vendor-ai';
+        //     }
+        //     // Motion/animation
+        //     if (id.includes('motion') || id.includes('embla-carousel')) {
+        //       return 'vendor-motion';
+        //     }
+        //     // Other vendors
+        //     return 'vendor';
+        //   }
+        // },
       },
     },
   },

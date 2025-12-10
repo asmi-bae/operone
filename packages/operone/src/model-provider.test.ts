@@ -43,16 +43,7 @@ describe('ModelProvider', () => {
       expect(provider.getConfig().type).toBe('anthropic');
     });
 
-    it('should create Ollama provider', () => {
-      const config: ProviderConfig = {
-        type: 'ollama',
-        baseURL: 'http://localhost:11434',
-        model: 'llama2',
-      };
 
-      const provider = new ModelProvider(config);
-      expect(provider.getConfig().type).toBe('ollama');
-    });
 
     it('should create Google provider', () => {
       const config: ProviderConfig = {
@@ -183,26 +174,11 @@ describe('ModelRegistry', () => {
       expect(providers).toContain('anthropic');
       expect(providers).toContain('google');
       expect(providers).toContain('mistral');
-      expect(providers).toContain('ollama');
+
     });
   });
 
-  describe('Ollama models', () => {
-    it('should update Ollama models', () => {
-      const customModels = [
-        {
-          id: 'custom-llama',
-          name: 'Custom Llama',
-          provider: 'ollama' as ProviderType,
-        },
-      ];
 
-      ModelRegistry.updateOllamaModels(customModels);
-      const models = ModelRegistry.getModels('ollama');
-      
-      expect(models.some(m => m.id === 'custom-llama')).toBe(true);
-    });
-  });
 });
 
 describe('ProviderManager', () => {
@@ -324,7 +300,7 @@ describe('ProviderManager', () => {
 describe('createDefaultConfig', () => {
   it('should create default OpenAI config', () => {
     const config = createDefaultConfig();
-    expect(config.type).toBe('openai');
-    expect(config.model).toBe('gpt-4o-mini'); // Actual default from implementation
+    expect(config.type).toBe('local');
+    expect(config.model).toBe('llama3-8b');
   });
 });

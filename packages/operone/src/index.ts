@@ -22,10 +22,7 @@ export { RAGEngine } from './agents/RAGEngine';
 
 // Browser adapter exports
 export { BrowserAdapter } from './adapters/BrowserAdapter';
-export type { 
-  OllamaModel, 
-  OllamaInfo 
-} from './adapters/BrowserAdapter';
+
 
 // Agent Manager
 export class AgentManager {

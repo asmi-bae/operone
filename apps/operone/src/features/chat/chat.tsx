@@ -189,26 +189,31 @@ export const ChatLayout = React.memo(function ChatLayout({
     }
   }, [messages, currentChat, generateChatTitle]);
 
-  // Auto-select Ollama model if available and no model selected
+  // Auto-select model from active provider
   const { availableModels } = useModelDetector();
+  const { activeProvider } = useAI();
 
   useEffect(() => {
     if (!selectedModel && availableModels.length > 0) {
-      // Find Ollama models within the available models list
-      const ollamaOptions = availableModels.filter(m => m.provider === 'ollama');
-
-      if (ollamaOptions.length > 0) {
-        // Prefer llama3.2, otherwise take the first one
-        const defaultModel = ollamaOptions.find(m => m.name.includes('llama3.2')) || ollamaOptions[0];
-        if (defaultModel) {
-          setSelectedModel(defaultModel.id);
+      // First, try to find the active model from the provider
+      const activeModel = availableModels.find(m => m.isActive);
+      if (activeModel) {
+        setSelectedModel(activeModel.id);
+      } else if (activeProvider) {
+        // If no active model found, try to match the provider's configured model
+        const providerModel = availableModels.find(m => m.id === activeProvider.model);
+        if (providerModel) {
+          setSelectedModel(providerModel.id);
+        } else if (availableModels.length > 0) {
+          // Fallback to first available model
+          setSelectedModel(availableModels[0]?.id || '');
         }
-      } else {
-        // If no Ollama models, select the first available model (e.g. from GGUF / Cloud)
-        setSelectedModel(availableModels[0].id);
+      } else if (availableModels.length > 0) {
+        // Last resort: just pick the first one
+        setSelectedModel(availableModels[0]?.id || '');
       }
     }
-  }, [selectedModel, availableModels]);
+  }, [selectedModel, availableModels, activeProvider]);
 
   // Update chat messages in project context (debounced with cleanup)
   useEffect(() => {

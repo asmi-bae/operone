@@ -372,7 +372,8 @@ function setupIPCHandlers() {
     }
     
     // Development mode - open browser to web app login page with desktop parameter
-    const loginUrl = 'http://localhost:3000/login?from=desktop'
+    const webAppUrl = process.env.VITE_WEB_APP_URL || 'http://localhost:3000'
+    const loginUrl = `${webAppUrl}/login?from=desktop`
     shell.openExternal(loginUrl)
     return { success: true, message: 'Opening login page in browser...' }
   })

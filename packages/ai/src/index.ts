@@ -5,7 +5,7 @@ export { createLocal } from './provider';
 export * from './types';
 export { OpenAIProvider } from './providers/OpenAIProvider';
 export { AnthropicProvider } from './providers/AnthropicProvider';
-export * from './providers/OllamaProvider';
+
 export * from './providers/GGUFProvider';
 export * from './providers/APIBaseProvider';
 export * from './providers/GoogleProvider';

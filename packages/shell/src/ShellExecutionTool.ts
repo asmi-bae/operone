@@ -9,7 +9,7 @@ export interface ShellToolArgs {
   cwd?: string;
   env?: Record<string, string>;
   timeout?: number;
-  peerId?: string; // For distributed execution
+  peerId?: string; 
 }
 
 /**

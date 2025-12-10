@@ -11,50 +11,13 @@ export class BrowserModelRegistry {
     anthropic: [],
     google: [],
     mistral: [],
-    ollama: [],
+
     openrouter: [],
     local: [],
     custom: [],
   };
 
-  /**
-   * Update Ollama models dynamically
-   */
-  static updateOllamaModels(models: ModelInfo[]): void {
-    this.models.ollama = models;
-  }
 
-  /**
-   * Get Ollama models from a local instance
-   */
-  static async getOllamaModelsFromInstance(baseURL: string = 'http://localhost:11434'): Promise<ModelInfo[]> {
-    try {
-      const response = await fetch(`${baseURL}/api/tags`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const ollamaModels = data.models || [];
-        
-        return ollamaModels.map((model: any) => ({
-          id: model.name,
-          name: model.name,
-          provider: 'ollama' as const,
-          description: `${model.details.family} - ${model.details.parameter_size}`,
-          contextWindow: model.details.format === 'gguf' ? 4096 : 8192, // Estimate
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ollama models:', error);
-    }
-
-    return []; // Return empty array if detection fails
-  }
 
   static getModels(provider: ProviderType): ModelInfo[] {
     return this.models[provider] || [];

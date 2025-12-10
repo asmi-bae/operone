@@ -103,7 +103,6 @@ function ModelsTab() {
 }
 
 function ModelCard({ model }: { model: any }) {
-    const [isExpanded, setIsExpanded] = useState(false)
     const { refreshModels } = useModelDetector()
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -113,7 +112,7 @@ function ModelCard({ model }: { model: any }) {
             anthropic: '🧠',
             google: '🔍',
             mistral: '🌊',
-            ollama: '🦙',
+
             openrouter: '🛣️',
             local: '📦',
             custom: '⚙️',
@@ -345,7 +344,6 @@ function ProviderConfigForm() {
         { value: 'google', label: 'Google Gemini', url: 'https://generativelanguage.googleapis.com/v1' },
         { value: 'mistral', label: 'Mistral AI', url: 'https://api.mistral.ai/v1' },
         { value: 'openrouter', label: 'OpenRouter', url: 'https://openrouter.ai/api/v1' },
-        { value: 'ollama', label: 'Ollama', url: 'http://localhost:11434' },
     ]
 
     // Auto-set base URL when provider changes
@@ -363,12 +361,12 @@ function ProviderConfigForm() {
 
         try {
             // Create provider config
-            const config: ProviderConfig = {
+            const config = {
                 type: providerType as ProviderType,
-                apiKey: providerType === 'ollama' ? undefined : apiKey,
+                apiKey: apiKey,
                 baseURL: baseUrl,
                 model: '', // Will be set by the provider
-            }
+            } as ProviderConfig
 
             // Generate unique provider ID
             const providerId = `${providerType}-${Date.now()}`
@@ -417,7 +415,7 @@ function ProviderConfigForm() {
                     <Input
                         value={baseUrl}
                         onChange={(e) => setBaseUrl(e.target.value)}
-                        placeholder={providerType === 'ollama' ? 'http://localhost:11434' : 'https://api.example.com'}
+                        placeholder={providerType === 'local' ? 'http://localhost:3000' : 'https://api.example.com'}
                         className="mt-2"
                     />
                 </div>
@@ -429,8 +427,8 @@ function ProviderConfigForm() {
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={providerType === 'ollama' ? 'Not required for Ollama' : 'sk-...'}
-                    disabled={providerType === 'ollama'}
+                    placeholder="sk-..."
+                    disabled={false}
                     className="mt-2"
                 />
             </div>
@@ -454,7 +452,7 @@ function ProviderConfigForm() {
             )}
 
             <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={isSaving || (!apiKey && providerType !== 'ollama')}>
+                <Button onClick={handleSave} disabled={isSaving || !apiKey}>
                     {isSaving && <Loader2Icon className="w-4 h-4 mr-2 animate-spin" />}
                     {isSaving ? 'Saving...' : 'Save Configuration'}
                 </Button>

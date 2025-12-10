@@ -28,8 +28,7 @@
         "@operone/thinking": "workspace:*",
         "@repo/types": "workspace:*",
         "ai": "^5.0.104",
-        "better-sqlite3": "12.5.0",
-        "ollama-ai-provider-v2": "1.5.5"
+        "better-sqlite3": "12.5.0"
     },
     "devDependencies": {
         "@repo/eslint-config": "workspace:*",

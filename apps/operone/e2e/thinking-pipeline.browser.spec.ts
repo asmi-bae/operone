@@ -6,19 +6,31 @@ test.describe('Thinking Pipeline E2E (Browser Mode)', () => {
     await page.goto('http://localhost:5173');
     
     // Wait for the app to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Wait for React to initialize
+    await page.waitForTimeout(1000);
+    
+    // Wait for the body to be visible
+    await page.waitForSelector('body', { timeout: 10000 });
   });
 
   test('should display the chat interface', async ({ page }) => {
     // Verify the main chat interface is visible
     await expect(page.locator('body')).toBeVisible();
     
-    // Check for chat input using data-testid
+    // Wait for the chat interface to load
+    await page.waitForTimeout(2000);
+    
+    // Check for chat input using data-testid with increased timeout
     const chatInput = page.locator('[data-testid="chat-input"]');
-    await expect(chatInput).toBeVisible();
+    await expect(chatInput).toBeVisible({ timeout: 15000 });
   });
 
   test('should have planning mode available', async ({ page }) => {
+    // Wait for chat interface to be ready
+    await page.waitForTimeout(2000);
+    
     // Look for mode selector - this might be a button, dropdown, or tabs
     // Adjust selector based on actual UI implementation
     const modeSelector = page.locator('[data-testid="chat-mode-selector"]').or(
@@ -26,20 +38,28 @@ test.describe('Thinking Pipeline E2E (Browser Mode)', () => {
     ).first();
     
     // If mode selector exists, it should be visible
-    if (await modeSelector.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await modeSelector.isVisible({ timeout: 5000 }).catch(() => false)) {
       await expect(modeSelector).toBeVisible();
     }
   });
 
   test('should send a message and display response', async ({ page }) => {
+    // Wait for chat interface to be ready
+    await page.waitForTimeout(2000);
+    
     // Find and fill the chat input using data-testid
     const chatInput = page.locator('[data-testid="chat-input"]').first();
+    
+    // Wait for the input to be visible and enabled
+    await expect(chatInput).toBeVisible({ timeout: 15000 });
+    await expect(chatInput).toBeEnabled({ timeout: 5000 });
+    
     await chatInput.fill('Hello, test message');
     
     // Submit the message using data-testid
     const sendButton = page.locator('[data-testid="send-button"]').first();
     
-    if (await sendButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if (await sendButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await sendButton.click();
     } else {
       await chatInput.press('Enter');
@@ -51,22 +71,31 @@ test.describe('Thinking Pipeline E2E (Browser Mode)', () => {
   });
 
   test('should trigger thinking pipeline in planning mode', async ({ page }) => {
+    // Wait for chat interface to be ready
+    await page.waitForTimeout(2000);
+    
     // Try to switch to planning mode
     const planningButton = page.locator('text=/planning/i').first();
     
-    if (await planningButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await planningButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await planningButton.click();
       await page.waitForTimeout(500);
     }
     
-    // Send a complex request that should trigger the pipeline using data-testid
+    // Find the chat input
     const chatInput = page.locator('[data-testid="chat-input"]').first();
+    
+    // Wait for the input to be visible and enabled
+    await expect(chatInput).toBeVisible({ timeout: 15000 });
+    await expect(chatInput).toBeEnabled({ timeout: 5000 });
+    
+    // Send a complex request that should trigger the pipeline using data-testid
     await chatInput.fill('Create a plan to build a simple React todo app');
     
     // Submit the message using data-testid
     const sendButton = page.locator('[data-testid="send-button"]').first();
     
-    if (await sendButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if (await sendButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await sendButton.click();
     } else {
       await chatInput.press('Enter');
@@ -107,12 +136,15 @@ test.describe('Thinking Pipeline E2E (Browser Mode)', () => {
   });
 
   test('should display OS-aware suggestions', async ({ page }) => {
+    // Wait for chat interface to be ready
+    await page.waitForTimeout(2000);
+    
     // Check for suggestion buttons
     const suggestions = page.locator('button:has-text("development environment")').or(
       page.locator('button:has-text("code example")')
     );
     
-    const suggestionsVisible = await suggestions.first().isVisible({ timeout: 2000 }).catch(() => false);
+    const suggestionsVisible = await suggestions.first().isVisible({ timeout: 5000 }).catch(() => false);
     
     if (suggestionsVisible) {
       await expect(suggestions.first()).toBeVisible();

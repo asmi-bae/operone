@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { OllamaDetector, type OllamaModel } from '../utils/ollama-detector';
+
 
 export interface ModelInfo {
   id: string;
   name: string;
-  provider: 'ollama' | 'openai' | 'anthropic' | 'google' | 'custom' | 'local';
+  provider: 'openai' | 'anthropic' | 'google' | 'custom' | 'local';
   description?: string;
   contextLength?: number;
   isLocal?: boolean;
@@ -19,9 +19,7 @@ interface ModelDetectorContextType {
   isLoading: boolean;
   error: string | null;
 
-  // Ollama specific
-  isOllamaAvailable: boolean;
-  ollamaModels: OllamaModel[];
+
 
   // Authentication (placeholder for future implementation)
   authenticateModel: (modelId: string, credentials: any) => Promise<boolean>;
@@ -30,7 +28,7 @@ interface ModelDetectorContextType {
 
   // Actions
   refreshModels: () => Promise<void>;
-  detectOllama: () => Promise<boolean>;
+
 }
 
 const ModelDetectorContext = createContext<ModelDetectorContextType | null>(null);
@@ -39,10 +37,7 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOllamaAvailable, setIsOllamaAvailable] = useState(false);
-  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
 
-  const ollamaDetector = OllamaDetector.getInstance();
 
   // Detect imported GGUF models from electron storage
   const detectImportedModels = async () => {
@@ -75,39 +70,6 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Detect Ollama models
-  const detectOllamaModels = async () => {
-    try {
-      const available = await ollamaDetector.checkAvailability();
-      setIsOllamaAvailable(available);
-
-      if (available) {
-        const models = await ollamaDetector.getAvailableModels();
-        setOllamaModels(models);
-
-        // Convert Ollama models to ModelInfo format
-        const modelInfos: ModelInfo[] = models.map(model => ({
-          id: `ollama:${model.name}`,
-          name: model.name,
-          provider: 'ollama' as const,
-          description: `${model.details.family} • ${model.details.parameter_size} • ${model.details.quantization_level}`,
-          contextLength: model.details.parameter_size === '7B' ? 4096 : 8192,
-          isLocal: true,
-          isActive: true,
-          requiresAuth: false,
-          authStatus: 'not_required' as const,
-        }));
-
-        return modelInfos;
-      }
-      return [];
-    } catch (err) {
-      // Silently handle Ollama detection errors
-      setIsOllamaAvailable(false);
-      setOllamaModels([]);
-      return [];
-    }
-  };
 
   // Detect all available models
   const detectAllModels = async () => {
@@ -117,13 +79,38 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
     try {
       const models: ModelInfo[] = [];
 
-      // Detect Ollama models
-      const ollamaModelInfos = await detectOllamaModels();
-      models.push(...ollamaModelInfos);
-
       // Detect imported GGUF models
       const importedModelInfos = await detectImportedModels();
       models.push(...importedModelInfos);
+
+      // Fetch models from active provider (OpenRouter, etc.)
+      if (window.electronAPI?.ai) {
+        try {
+          const activeProvider = await window.electronAPI.ai.getActiveProvider();
+
+          if (activeProvider) {
+            // Get models for the active provider type
+            const providerModels = await window.electronAPI.ai.getModels(activeProvider.type);
+
+            // Convert to ModelInfo format
+            const providerModelInfos: ModelInfo[] = providerModels.map((model: any) => ({
+              id: model.id,
+              name: model.name,
+              provider: model.provider as any,
+              description: model.description,
+              contextLength: model.contextWindow,
+              isLocal: false,
+              isActive: model.id === activeProvider.model, // Mark the configured model as active
+              requiresAuth: false,
+              authStatus: 'not_required' as const,
+            }));
+
+            models.push(...providerModelInfos);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch provider models:', err);
+        }
+      }
 
       // Note: Cloud provider models will be added when user configures them with API keys
       setAvailableModels(models);
@@ -139,12 +126,7 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
     await detectAllModels();
   };
 
-  // Detect Ollama only
-  const detectOllama = async () => {
-    const available = await ollamaDetector.checkAvailability();
-    setIsOllamaAvailable(available);
-    return available;
-  };
+
 
   // Authentication methods (placeholder for future implementation)
   const authenticateModel = async (modelId: string, credentials: any): Promise<boolean> => {
@@ -187,13 +169,12 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
 
     // Set up periodic refresh for all models
     const interval = setInterval(async () => {
-      const ollamaModelInfos = await detectOllamaModels();
       const importedModelInfos = await detectImportedModels();
 
       setAvailableModels(prev => {
-        // Remove old Ollama and local models, add refreshed ones
-        const otherModels = prev.filter(m => m.provider !== 'ollama' && m.provider !== 'local');
-        return [...otherModels, ...ollamaModelInfos, ...importedModelInfos];
+        // Remove old local models, add refreshed ones
+        const otherModels = prev.filter(m => m.provider !== 'local');
+        return [...otherModels, ...importedModelInfos];
       });
     }, 30000); // Refresh every 30 seconds
 
@@ -204,13 +185,10 @@ export function ModelDetectorProvider({ children }: { children: ReactNode }) {
     availableModels,
     isLoading,
     error,
-    isOllamaAvailable,
-    ollamaModels,
+    refreshModels,
     authenticateModel,
     deauthenticateModel,
     getAuthStatus,
-    refreshModels,
-    detectOllama,
   };
 
   return (

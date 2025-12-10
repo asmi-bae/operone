@@ -31,11 +31,11 @@ export class ShellExecutor {
   private getShell(): string {
     const platform = os.platform();
     
-    if (platform === 'win32') {
+    if (platform === 'win32') {      //Windows
       return process.env.COMSPEC || 'cmd.exe';
-    } else if (platform === 'darwin') {
+    } else if (platform === 'darwin') {  //MacOS
       return process.env.SHELL || '/bin/zsh';
-    } else {
+    } else {   //Linux
       return process.env.SHELL || '/bin/bash';
     }
   }

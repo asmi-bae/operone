@@ -16,7 +16,7 @@ import {
 import { createThinkingPipeline, ThinkingPipeline } from '@operone/thinking'
 import { TaskOrchestrator } from '@operone/core'
 import { SQLiteTaskRepository } from '@operone/db'
-import { mcpBroker, permissionManager } from '@operone/mcp'
+import { mcpBroker } from '@operone/mcp'
 import type { ProviderType, AITask } from '@repo/types'
 import Store from 'electron-store'
 import path from 'path'
@@ -74,6 +74,9 @@ class AIService {
     if (Object.keys(savedProviders).length === 0) {
       const defaultConfig = createDefaultConfig();
       this.providerManager.addProvider('default', defaultConfig);
+      this.providerManager.setActiveProvider('default'); // Set as active
+      store.set('ai.activeProviderId', 'default'); // Save to store
+      store.set('ai.providers', { default: defaultConfig }); // Save provider config
     } else {
       Object.entries(savedProviders).forEach(([id, config]) => {
         this.providerManager.addProvider(id, config);
@@ -82,6 +85,11 @@ class AIService {
 
     if (activeProviderId && this.providerManager.getProvider(activeProviderId)) {
       this.providerManager.setActiveProvider(activeProviderId);
+    } else if (Object.keys(savedProviders).length > 0) {
+      // If no active provider set but we have providers, activate the first one
+      const firstProviderId = Object.keys(savedProviders)[0];
+      this.providerManager.setActiveProvider(firstProviderId);
+      store.set('ai.activeProviderId', firstProviderId);
     }
 
     // Initialize Memory Manager
@@ -290,36 +298,7 @@ class AIService {
     }
   }
 
-  /**
-   * Extract command from natural language action
-   */
-  private extractCommand(action: string): string {
-    // Simple command extraction - in production this would be more sophisticated
-    const lowerAction = action.toLowerCase();
 
-    if (lowerAction.includes('list') || lowerAction.includes('find')) {
-      if (lowerAction.includes('desktop')) {
-        return 'ls ~/Desktop';
-      }
-      if (lowerAction.includes('documents')) {
-        return 'ls ~/Documents';
-      }
-      // Default to current directory
-      return 'ls -la';
-    }
-
-    if (lowerAction.includes('search') || lowerAction.includes('find')) {
-      // Extract folder name from action
-      const match = action.match(/["']([^"']+)["']|(\w+)\s+folder/i);
-      if (match) {
-        const folderName = match[1] || match[2];
-        return `find ~ -type d -name "${folderName}" 2>/dev/null | head -10`;
-      }
-    }
-
-    // Fallback
-    return action;
-  }
 
   async sendMessageWithAgent(message: string, agentType: 'assistant' | 'os' = 'assistant'): Promise<string> {
     const agent = agentType === 'os' ? this.osAgent : this.assistantAgent;

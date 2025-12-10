@@ -57,11 +57,12 @@ describe('@repo/types', () => {
       const providers: ProviderType[] = [
         'openai',
         'anthropic',
-        'ollama',
+
         'openrouter',
         'google',
         'mistral',
         'custom',
+        'local',
       ];
       
       expect(providers).toHaveLength(7);
@@ -79,15 +80,16 @@ describe('@repo/types', () => {
       expect(config.model).toBe('gpt-4');
     });
 
-    it('should create Ollama config', () => {
+    it('should create Local config', () => {
       const config: ProviderConfig = {
-        type: 'ollama',
-        baseURL: 'http://localhost:11434',
-        model: 'llama2',
+        type: 'local',
+        model: 'llama3-8b',
+        baseURL: '',
+        modelPath: '/path/to/model.gguf',
       };
       
-      expect(config.type).toBe('ollama');
-      expect(config.baseURL).toBe('http://localhost:11434');
+      expect(config.type).toBe('local');
+      expect(config.model).toBe('llama3-8b');
     });
 
     it('should create Google config', () => {
@@ -170,10 +172,11 @@ describe('@repo/types', () => {
             apiKey: 'key-1',
             model: 'gpt-4',
           },
-          'ollama-1': {
-            type: 'ollama',
-            baseURL: 'http://localhost:11434',
-            model: 'llama2',
+          'local-1': {
+            type: 'local',
+            model: 'llama3-8b',
+            baseURL: '',
+            modelPath: '/path/to/model.gguf',
           },
         },
       };

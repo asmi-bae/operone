@@ -32,4 +32,17 @@ export class Network {
     }
     return undefined;
   }
+  async sendPacket(fromId: string, toIp: string, port: number, payload: any): Promise<{ status: number, data?: any, error?: string }> {
+    const fromPC = this.pcs.get(fromId);
+    const toPC = this.getPcByIp(toIp);
+
+    if (!fromPC) return { status: 400, error: 'Sender not found' };
+    if (!toPC) return { status: 404, error: 'Destination unreachable' };
+
+    // Simulate network latency (random 10-50ms)
+    const latency = Math.floor(Math.random() * 40) + 10;
+    await new Promise(resolve => setTimeout(resolve, latency));
+
+    return toPC.handleRequest(port, payload);
+  }
 }

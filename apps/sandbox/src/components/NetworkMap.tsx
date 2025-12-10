@@ -7,6 +7,7 @@ import ReactFlow, {
   useNodesState,
   type Edge,
   type Node,
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Monitor } from 'lucide-react';
@@ -75,8 +76,8 @@ export const NetworkMap = ({ topology = 'ring' }: NetworkMapProps) => {
       source: conn.from,
       target: conn.to,
       type: 'smoothstep',
-      style: { 
-        stroke: topology === 'mesh' ? '#10b981' : topology === 'star' ? '#f59e0b' : topology === 'ring' ? '#8b5cf6' : topology === 'tree' ? '#ef4444' : '#60a5fa', 
+      style: {
+        stroke: topology === 'mesh' ? '#10b981' : topology === 'star' ? '#f59e0b' : topology === 'ring' ? '#8b5cf6' : topology === 'tree' ? '#ef4444' : '#60a5fa',
         strokeWidth: topology === 'mesh' ? 1 : 2,
         strokeDasharray: topology === 'mesh' ? '3,3' : topology === 'bus' ? '8,4' : 'none'
       },
@@ -126,18 +127,18 @@ export const NetworkMap = ({ topology = 'ring' }: NetworkMapProps) => {
               border: '1px solid #374151'
             }}
           />
-          <Controls 
+          <Controls
             style={{
               backgroundColor: 'rgba(31, 41, 55, 0.9)',
               border: '1px solid #374151',
               borderRadius: '8px'
             }}
           />
-          <Background 
-            color="#374151" 
-            gap={20} 
+          <Background
+            color="#374151"
+            gap={20}
             size={1}
-            variant="dots"
+            variant={BackgroundVariant.Dots}
           />
         </ReactFlow>
       </div>

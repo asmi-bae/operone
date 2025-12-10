@@ -2,20 +2,20 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
-import { createOllama } from 'ollama-ai-provider-v2';
+
 import type { 
   ProviderConfig, 
   ProviderType, 
   ModelInfo,
   OpenAIConfig,
   AnthropicConfig,
-  OllamaConfig,
+//   OllamaConfig,
   OpenRouterConfig,
   GoogleConfig,
   MistralConfig,
   CustomConfig
 } from '@repo/types';
-import { custom } from 'zod';
+
 
 /**
  * Model Provider Factory
@@ -38,8 +38,8 @@ export class ModelProvider {
       case 'anthropic':
         return this.createAnthropicProvider(this.config as AnthropicConfig);
       
-      case 'ollama':
-        return this.createOllamaProvider(this.config as OllamaConfig);
+      // case 'ollama':
+      //   return this.createOllamaProvider(this.config as OllamaConfig);
       
       case 'openrouter':
         return this.createOpenRouterProvider(this.config as OpenRouterConfig);
@@ -60,7 +60,8 @@ export class ModelProvider {
         throw new Error('Local provider implementation not registered');
       
       default: {
-        const exhaustiveCheck: never = this.config as never;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.config as never;
         throw new Error(`Unsupported provider type: ${(this.config as any).type}`);
       }
     }
@@ -92,12 +93,12 @@ export class ModelProvider {
     });
   }
 
-  private createOllamaProvider(config: OllamaConfig) {
-    // Use native Ollama provider
-    return createOllama({
-      baseURL: config.baseURL + '/api',
-    });
-  }
+  // private createOllamaProvider(config: OllamaConfig) {
+  //   // Use native Ollama provider
+  //   return createOllama({
+  //     baseURL: config.baseURL + '/api',
+  //   });
+  // }
 
   private createOpenRouterProvider(config: OpenRouterConfig) {
     // OpenRouter uses OpenAI-compatible API
@@ -207,50 +208,33 @@ export class ModelRegistry {
     anthropic: [],
     google: [],
     mistral: [],
-    ollama: [],
-    openrouter: [],
+    // ollama: [],
+    openrouter: [
+      {
+        id: 'mistralai/devstral-2512:free',
+        name: 'Devstral 2512 (Free)',
+        provider: 'openrouter',
+        description: 'Mistral AI Devstral 2512 - Free tier',
+        contextWindow: 32768,
+      },
+      {
+        id: 'google/gemini-2.0-flash-exp:free',
+        name: 'Gemini 2.0 Flash (Free)',
+        provider: 'openrouter',
+        description: 'Google Gemini 2.0 Flash - Free tier',
+        contextWindow: 32768,
+      },
+      {
+        id: 'meta-llama/llama-3.3-70b-instruct',
+        name: 'Llama 3.3 70B Instruct',
+        provider: 'openrouter',
+        description: 'Meta Llama 3.3 70B Instruct',
+        contextWindow: 131072,
+      },
+    ],
     local: [],
     custom: [],
   };
-
-  /**
-   * Update Ollama models dynamically
-   */
-  static updateOllamaModels(models: ModelInfo[]): void {
-    this.models.ollama = models;
-  }
-
-  /**
-   * Get Ollama models from a local instance
-   */
-  static async getOllamaModelsFromInstance(baseURL: string = 'http://localhost:11434'): Promise<ModelInfo[]> {
-    try {
-      const response = await fetch(`${baseURL}/api/tags`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const ollamaModels = data.models || [];
-        
-        return ollamaModels.map((model: any) => ({
-          id: model.name,
-          name: model.name,
-          provider: 'ollama' as const,
-          description: `${model.details.family} - ${model.details.parameter_size}`,
-          contextWindow: model.details.format === 'gguf' ? 4096 : 8192, // Estimate
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ollama models:', error);
-    }
-
-    return this.models.ollama; // Return default models if detection fails
-  }
 
   /**
    * Get OpenRouter models dynamically
@@ -379,8 +363,9 @@ export class ProviderManager {
  */
 export function createDefaultConfig(): ProviderConfig {
   return {
-    type: 'ollama',
-    model: 'llama3.2',
-    baseURL: 'http://localhost:11434',
+    type: 'openrouter',
+    model: 'mistralai/devstral-2512:free',
+    apiKey: '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',
+    baseURL: 'https://openrouter.ai/api/v1',
   };
 }

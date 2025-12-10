@@ -1,72 +1,110 @@
-import { test, expect, _electron as electron } from '@playwright/test'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { test, expect } from '@playwright/test'
+import { 
+  launchElectronApp, 
+  waitForAppReady
+} from './test-utils'
 
 test('chat interface works', async () => {
   // Launch Electron app
-  const electronApp = await electron.launch({
-    args: [path.join(__dirname, '../dist-electron/main.js')],
-    env: { ...process.env, NODE_ENV: 'test' }
-  })
+  const electronApp = await launchElectronApp()
 
-  // Mock the auth:getUser IPC handler in the main process
+  // Setup IPC mocks in main process
   await electronApp.evaluate(({ ipcMain }) => {
+    // Mock auth:getUser
     ipcMain.removeHandler('auth:getUser')
     ipcMain.handle('auth:getUser', () => {
       return { id: 'test-user', name: 'Test User', email: 'test@example.com' }
     })
   })
 
-  // Mock the ai:sendMessage IPC handler
   await electronApp.evaluate(({ ipcMain, BrowserWindow }) => {
-    ipcMain.removeHandler('ai:sendMessage')
-    ipcMain.handle('ai:sendMessage', async (event) => {
-      const window = BrowserWindow.getAllWindows()[0]
+    // Mock ai:sendMessageStreaming
+    ipcMain.removeHandler('ai:sendMessageStreaming')
+    ipcMain.handle('ai:sendMessageStreaming', async (event, message) => {
+      const sender = event.sender
       // Simulate streaming response
       setTimeout(() => {
-        window.webContents.send('ai:stream:token', 'Hello ')
+        sender.send('ai:stream:token', 'Hello ')
       }, 100)
       setTimeout(() => {
-        window.webContents.send('ai:stream:token', 'World!')
+        sender.send('ai:stream:token', 'World!')
       }, 200)
       setTimeout(() => {
-        window.webContents.send('ai:stream:complete', 'Hello World!')
+        sender.send('ai:stream:complete', 'Hello World!')
       }, 300)
-      return null
+      return { success: true }
     })
+
+    // Mock ai:model:list
+    ipcMain.removeHandler('ai:model:list')
+    ipcMain.handle('ai:model:list', () => [])
+
+    // Mock ai:provider:getActive
+    ipcMain.removeHandler('ai:provider:getActive')
+    ipcMain.handle('ai:provider:getActive', () => null)
   })
 
   // Get the first window
   const window = await electronApp.firstWindow()
   
-  // Reload the window to trigger the auth check again with the mocked handler
+
+
+  // Reload the window to ensure mocks are active
   await window.reload()
   
-  // Wait for load
-  await window.waitForLoadState('domcontentloaded')
+  // Wait for app to be ready
+  await waitForAppReady(window)
   
-  // Look for the chat input area using data-testid
+  // Wait extra time for React to fully render
+  await window.waitForTimeout(3000)
+  
+
+  
+  // Debug: Log page content
+  const bodyText = await window.locator('body').textContent()
+  console.log('Page body text:', bodyText?.substring(0, 300))
+  
+
+
+  
+  // Look for the chat input area
   const inputArea = window.locator('[data-testid="chat-input"]')
-  await expect(inputArea).toBeVisible()
   
-  // Type a message
-  await inputArea.fill('Hello AI')
+  try {
+    await expect(inputArea).toBeVisible({ timeout: 20000 })
+  } catch (e) {
+    // Log HTML for debugging
+    const html = await window.content()
+    console.log('Full page HTML length:', html.length)
+    console.log('Page HTML preview:', html.substring(0, 2000))
+    throw e
+  }
   
-  // Click send button using data-testid
-  const sendButton = window.locator('[data-testid="send-button"]')
-  await sendButton.click()
+  // Press keys to type a message
+  await inputArea.press('H')
+  await inputArea.press('e')
+  await inputArea.press('l')
+  await inputArea.press('l')
+  await inputArea.press('o')
+  await inputArea.press('Space')
+  await inputArea.press('A')
+  await inputArea.press('I')
+  
+  // Submit via Enter
+  await inputArea.press('Enter')
+  
+  // Verify input is cleared
+  await expect(inputArea).toHaveValue('', { timeout: 5000 })
+  await expect(inputArea).toBeEmpty()
   
   // Verify user message appears
-  await expect(window.locator('text=Hello AI')).toBeVisible()
+  await expect(window.locator('text=Hello AI')).toBeVisible({ timeout: 5000 })
   
-  // Wait a bit for response
+  // Wait for AI response
   await window.waitForTimeout(1000)
   
   // Check for AI response
-  await expect(window.locator('text=Hello World!')).toBeVisible()
+  await expect(window.locator('text=Hello World!')).toBeVisible({ timeout: 20000 })
 
   // Close app
   await electronApp.close()

@@ -25,7 +25,7 @@ export interface MCPTool {
 export type ProviderType = 
   | 'openai' 
   | 'anthropic' 
-  | 'ollama' 
+
   | 'openrouter' 
   | 'google' 
   | 'mistral' 
@@ -48,10 +48,7 @@ export interface AnthropicConfig extends BaseProviderConfig {
   type: 'anthropic';
 }
 
-export interface OllamaConfig extends BaseProviderConfig {
-  type: 'ollama';
-  baseURL: string; // e.g., http://localhost:11434
-}
+
 
 export interface OpenRouterConfig extends BaseProviderConfig {
   type: 'openrouter';
@@ -74,6 +71,7 @@ export interface LocalConfig extends BaseProviderConfig {
   contextSize?: number;
   threads?: number;
   gpuLayers?: number;
+  useMock?: boolean; // Enable mock mode for development
 }
 
 export interface CustomConfig extends BaseProviderConfig {
@@ -85,7 +83,7 @@ export interface CustomConfig extends BaseProviderConfig {
 export type ProviderConfig = 
   | OpenAIConfig 
   | AnthropicConfig 
-  | OllamaConfig 
+
   | OpenRouterConfig 
   | GoogleConfig 
   | MistralConfig 

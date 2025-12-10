@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { ProviderConfig, ProviderType, ModelInfo, ChatMessage, GeneratedImage, ExactTextResult, MessageType } from '@repo/types';
+import type { ProviderConfig, ProviderType, ModelInfo, ChatMessage, MessageType } from '@repo/types';
 import { BrowserAdapter } from '@repo/operone';
+import type { ChatMode } from '../types/ai';
 
 const { BrowserAIService } = BrowserAdapter;
 
-export type ChatMode = 'chat' | 'planning';
-
-interface AIContextType {
+export interface AIContextType {
     // Chat
     messages: ChatMessage[];
     setMessages: (messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
@@ -31,6 +30,9 @@ interface AIContextType {
 }
 
 const AIContext = createContext<AIContextType | null>(null);
+
+export { AIContext };
+export type { ChatMode };
 
 export function AIProvider({ children }: { children: ReactNode }) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -68,15 +70,16 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
                 if (isAvailable) {
                     setBrowserAIService(browserService);
+                    // @ts-ignore
                     const config = browserService.getActiveProviderConfig();
+                    // @ts-ignore
                     setActiveProviderState(config);
+                    // @ts-ignore
                     setAllProviders(browserService.getAllProviderConfigs());
-                    console.info('✓ Browser AI service initialized successfully with Ollama');
+                    console.info('✓ Browser AI service initialized');
                 } else {
-                    console.info('No local Ollama instance detected. AI features will be limited.');
-                    console.info('To use AI features, either:');
-                    console.info('  1. Run the app in Electron mode: pnpm electron:dev');
-                    console.info('  2. Start Ollama locally: https://ollama.ai');
+                    console.info('Browser AI service not available. AI features will be limited.');
+                    console.info('To use AI features, please run the app in Electron mode: pnpm electron:dev');
                 }
                 return;
             }
@@ -124,7 +127,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
                     const errorMessage: ChatMessage = {
                         id: (Date.now() + 1).toString(),
                         role: 'assistant',
-                        content: 'Failed to connect to Ollama. Please make sure Ollama is running locally.',
+                        content: 'AI service not available in browser mode. Please use Electron.',
                         timestamp: new Date(),
                     };
 
@@ -149,7 +152,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
             const errorMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'AI service not available. Please run this app in Electron mode or start Ollama locally for browser mode.',
+                content: 'AI service not available. Please run this app in Electron mode.',
                 timestamp: new Date(),
             };
 
@@ -397,11 +400,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
     const addProvider = async (id: string, config: ProviderConfig) => {
         if (!window.electronAPI || !window.electronAPI.ai) {
-            if (browserAIService && config.type === 'ollama') {
-                // In browser mode, we can update the Ollama configuration
-                console.warn('Browser mode: Cannot add providers, using detected Ollama');
-                return;
-            }
+
             console.warn('Electron API not available, cannot add provider');
             throw new Error('Electron API not available');
         }
@@ -437,11 +436,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
     const updateProvider = async (id: string, config: ProviderConfig) => {
         if (!window.electronAPI || !window.electronAPI.ai) {
-            if (browserAIService && config.type === 'ollama') {
-                // In browser mode, we cannot update the detected Ollama
-                console.warn('Browser mode: Cannot update providers');
-                return;
-            }
+
             console.warn('Electron API not available, cannot update provider');
             throw new Error('Electron API not available');
         }
@@ -474,15 +469,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
     const getAvailableModels = async (provider: ProviderType): Promise<ModelInfo[]> => {
         if (!window.electronAPI || !window.electronAPI.ai) {
-            if (browserAIService && provider === 'ollama') {
-                // In browser mode, we can get Ollama models
-                try {
-                    return await browserAIService.getModels('ollama');
-                } catch (error) {
-                    console.error('Failed to get Ollama models:', error);
-                    return [];
-                }
-            }
+
             console.warn('Electron API not available, cannot get models');
             return [];
         }
@@ -511,7 +498,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
         testProvider,
         getAvailableModels,
         currentMode,
-        sendMessageWithMode: (content, mode) => sendMessage(content, 'chat'), // Placeholder
+        sendMessageWithMode: (content, _mode) => sendMessage(content, 'chat'),
     };
 
     return <AIContext.Provider value={value}>{children}</AIContext.Provider>;

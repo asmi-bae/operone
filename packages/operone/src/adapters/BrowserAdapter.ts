@@ -131,14 +131,7 @@ export class BrowserModelRegistry {
       { id: 'mistral-small-latest', name: 'Mistral Small', provider: 'mistral', contextWindow: 32000, description: 'Efficient and fast' },
       { id: 'codestral-latest', name: 'Codestral', provider: 'mistral', contextWindow: 32000, description: 'Specialized for code' },
     ],
-    ollama: [
-      { id: 'llama3.2', name: 'Llama 3.2', provider: 'ollama', description: 'Latest Llama model' },
-      { id: 'llama3.1', name: 'Llama 3.1', provider: 'ollama', description: 'Previous Llama version' },
-      { id: 'mistral', name: 'Mistral', provider: 'ollama', description: 'Mistral 7B' },
-      { id: 'codellama', name: 'Code Llama', provider: 'ollama', description: 'Specialized for code' },
-      { id: 'phi3', name: 'Phi-3', provider: 'ollama', description: 'Microsoft Phi-3' },
-      { id: 'qwen2.5', name: 'Qwen 2.5', provider: 'ollama', description: 'Alibaba Qwen' },
-    ],
+
     openrouter: [
       { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'openrouter', description: 'Via OpenRouter' },
       { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openrouter', description: 'Via OpenRouter' },
@@ -149,38 +142,7 @@ export class BrowserModelRegistry {
     local: [],
   };
 
-  static updateOllamaModels(models: ModelInfo[]): void {
-    this.models.ollama = models;
-  }
 
-  static async getOllamaModelsFromInstance(baseURL: string = 'http://localhost:11434'): Promise<ModelInfo[]> {
-    try {
-      const response = await fetch(`${baseURL}/api/tags`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const ollamaModels = data.models || [];
-        
-        return ollamaModels.map((model: any) => ({
-          id: model.name,
-          name: model.name,
-          provider: 'ollama' as const,
-          description: `${model.details?.family || 'Unknown'} - ${model.details?.parameter_size || 'Unknown'}`,
-          contextWindow: model.details?.format === 'gguf' ? 4096 : 8192,
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ollama models:', error);
-    }
-
-    return this.models.ollama;
-  }
 
   static getModels(provider: ProviderType): ModelInfo[] {
     return this.models[provider] || [];
@@ -198,266 +160,47 @@ export class BrowserModelRegistry {
 /**
  * Ollama Detector for browser environments
  */
-export interface OllamaModel {
-  name: string;
-  size: number;
-  digest: string;
-  details: {
-    format: string;
-    family: string;
-    families: string[];
-    parameter_size: string;
-    quantization_level: string;
-  };
-  modified_at: string;
-}
 
-export interface OllamaInfo {
-  version: string;
-  build: string;
-}
-
-export class OllamaDetector {
-  private static instance: OllamaDetector;
-  private baseURL: string = 'http://localhost:11434';
-  private isAvailable: boolean = false;
-  private availableModels: OllamaModel[] = [];
-
-  static getInstance(): OllamaDetector {
-    if (!OllamaDetector.instance) {
-      OllamaDetector.instance = new OllamaDetector();
-    }
-    return OllamaDetector.instance;
-  }
-
-  async checkAvailability(baseURL?: string): Promise<boolean> {
-    if (baseURL) {
-      this.baseURL = baseURL;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/version`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (response.ok) {
-        this.isAvailable = true;
-        return true;
-      }
-    } catch (error) {
-      console.warn('Ollama not available:', error);
-      this.isAvailable = false;
-      return false;
-    }
-
-    this.isAvailable = false;
-    return false;
-  }
-
-  async getAvailableModels(): Promise<OllamaModel[]> {
-    if (!this.isAvailable) {
-      await this.checkAvailability();
-    }
-
-    if (!this.isAvailable) {
-      return [];
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/tags`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.availableModels = data?.models || [];
-        return this.availableModels;
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ollama models:', error);
-    }
-
-    return [];
-  }
-
-  async getInfo(): Promise<OllamaInfo | null> {
-    if (!this.isAvailable) {
-      await this.checkAvailability();
-    }
-
-    if (!this.isAvailable) {
-      return null;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/version`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(5000),
-      });
-
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ollama info:', error);
-    }
-
-    return null;
-  }
-
-  getBaseURL(): string {
-    return this.baseURL;
-  }
-
-  isOllamaAvailable(): boolean {
-    return this.isAvailable;
-  }
-
-  getCachedModels(): OllamaModel[] {
-    return this.availableModels;
-  }
-
-  async detectOllama(): Promise<string | null> {
-    const commonUrls = [
-      'http://localhost:11434',
-      'http://127.0.0.1:11434',
-      'http://localhost:11435',
-      'http://127.0.0.1:11435',
-    ];
-
-    for (const url of commonUrls) {
-      try {
-        if (await this.checkAvailability(url)) {
-          return url;
-        }
-      } catch (error) {
-        // Continue to next URL
-      }
-    }
-
-    return null;
-  }
-}
 
 /**
  * Browser AI Service - provides AI functionality using Ollama in browser
  */
 export class BrowserAIService {
-  private ollamaDetector: OllamaDetector;
   private memoryManager: BrowserMemoryManager;
-  private baseURL: string | null = null;
-  private activeModel: string | null = null;
+
 
   constructor() {
-    this.ollamaDetector = OllamaDetector.getInstance();
     this.memoryManager = new BrowserMemoryManager();
   }
 
   async initialize(): Promise<boolean> {
-    try {
-      const detectedURL = await this.ollamaDetector.detectOllama();
-      
-      if (detectedURL) {
-        this.baseURL = detectedURL;
-        await this.loadModels();
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Failed to initialize browser AI service:', error);
-      return false;
-    }
+    // Ollama is disabled
+    return false;
   }
 
-  private async loadModels(): Promise<void> {
-    if (!this.baseURL) return;
 
-    const models = await this.ollamaDetector.getAvailableModels();
-    if (models.length > 0 && models[0]) {
-      this.activeModel = models[0].name;
-    }
-  }
 
-  async sendMessage(message: string): Promise<string> {
-    if (!this.baseURL || !this.activeModel) {
-      throw new Error('Ollama not available or no model selected');
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.activeModel,
-          prompt: message,
-          stream: false,
-        }),
-        signal: AbortSignal.timeout(30000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data.response || 'No response received';
-    } catch (error) {
-      console.error('Error sending message to Ollama:', error);
-      throw error;
-    }
+  async sendMessage(_message: string): Promise<string> {
+   throw new Error('Ollama is disabled');
   }
 
   getActiveProviderConfig(): ProviderConfig | null {
-    if (!this.baseURL || !this.activeModel) {
-      return null;
-    }
-
-    return {
-      type: 'ollama' as const,
-      baseURL: this.baseURL,
-      model: this.activeModel,
-    };
+    return null;
   }
 
   getAllProviderConfigs(): Record<string, ProviderConfig> {
-    const config = this.getActiveProviderConfig();
-    return config ? { 'detected-ollama': config } : {};
+    return {};
   }
 
-  async getModels(providerType: 'ollama'): Promise<ModelInfo[]> {
-    if (providerType !== 'ollama') {
-      return [];
-    }
-
-    try {
-      const models = await BrowserModelRegistry.getOllamaModelsFromInstance(this.baseURL || 'http://localhost:11434');
-      BrowserModelRegistry.updateOllamaModels(models);
-      return models;
-    } catch (error) {
-      console.error('Failed to get Ollama models:', error);
-      return [];
-    }
+  async getModels(_providerType: 'ollama'): Promise<ModelInfo[]> {
+    return [];
   }
 
   isAvailable(): boolean {
-    return this.baseURL !== null && this.activeModel !== null;
+    return false;
   }
 
-  async ingestDocument(id: string, content: string, metadata?: any): Promise<void> {
+  async ingestDocument(_id: string, content: string, _metadata?: any): Promise<void> {
     this.memoryManager.longTerm.store(content);
   }
 
@@ -470,7 +213,7 @@ export class BrowserAIService {
   }
 
   getOllamaInfo() {
-    return this.ollamaDetector.getInfo();
+    return null;
   }
 }
 
@@ -480,6 +223,6 @@ export class BrowserAIService {
 export const BrowserAdapter = {
   BrowserMemoryManager,
   BrowserModelRegistry,
-  OllamaDetector,
+
   BrowserAIService,
 };

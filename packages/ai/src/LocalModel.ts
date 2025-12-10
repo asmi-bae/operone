@@ -25,6 +25,10 @@ export class LocalModel implements ModelProvider {
       throw new Error(`Model file not found at ${this.config.path}`);
     }
 
+    // Validation removed as requested by user
+    // const stats = fs.statSync(this.config.path);
+    // if (stats.size < 1024 * 1024) { ... }
+
     try {
       const loadParams: Partial<ModelLoad> = {
         modelPath: this.config.path,

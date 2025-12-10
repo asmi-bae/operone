@@ -24,9 +24,9 @@ export class FileSystem {
   ls(path: string): string[] {
     // Simple filter for simulation
     const results: string[] = [];
-    // If path is root '/'
+    // If path is root '/', return all files
     if (path === '/') {
-      return Array.from(this.directories).map(d => d.replace('/', ''))
+      return Array.from(this.files.keys());
     }
 
     // Check virtual directories

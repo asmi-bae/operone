@@ -64,7 +64,7 @@ export const Terminal = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="flex-1 bg-transparent outline-none text-gray-100 placeholder-gray-700"
-                    placeholder="Type a command (try: ls, status, echo hi)..."
+                    placeholder="Type a command (try: help, ls, ping 192.168.1.12, ifconfig)..."
                     autoFocus
                 />
             </form>

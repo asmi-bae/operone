@@ -121,36 +121,76 @@ export function NetworkingPage() {
 }
 
 function FileTransferPanel() {
-    const { selectedPC, network } = useSimulation();
+    const { selectedPC, network, refresh } = useSimulation();
     const [targetPCId, setTargetPCId] = useState<string>('');
     const [selectedFile, setSelectedFile] = useState<string>('');
-    const [operation, setOperation] = useState<'copy' | 'move' | 'send'>('send');
+    const [operation, setOperation] = useState<'copy' | 'move'>('copy');
+    const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info' | null, message: string }>({ type: null, message: '' });
+    const [isTransferring, setIsTransferring] = useState(false);
 
     if (!selectedPC) return null;
 
     const otherPCs = network.getAllPCs().filter(pc => pc.id !== selectedPC.id && pc.status === 'online');
     const files = selectedPC.fs.ls('/');
 
-    const handleTransfer = () => {
+    const handleTransfer = async () => {
         if (!targetPCId || !selectedFile) return;
 
         const targetPC = network.getPC(targetPCId);
         if (!targetPC) return;
 
-        const content = selectedPC.fs.readFile(selectedFile);
-        if (!content) return;
-
-        // Perform transfer
-        targetPC.fs.writeFile(selectedFile, content);
-        targetPC.log(`Received file ${selectedFile} from ${selectedPC.hostname}`);
-        selectedPC.log(`Sent file ${selectedFile} to ${targetPC.hostname}`);
-
-        if (operation === 'move') {
-            selectedPC.fs.deleteFile(selectedFile);
-            selectedPC.log(`Moved file ${selectedFile} to ${targetPC.hostname}`);
+        const fileContent = selectedPC.fs.readFile(selectedFile);
+        if (fileContent === null) {
+            setStatus({ type: 'error', message: `File not found: ${selectedFile}` });
+            return;
         }
 
-        alert(`${operation.toUpperCase()}: ${selectedFile} → ${targetPC.hostname}`);
+        setIsTransferring(true);
+        setStatus({ type: 'info', message: `Transferring ${selectedFile}...` });
+
+        try {
+            // Send file via network
+            const result = await network.sendPacket(selectedPC.id, targetPC.ip, 21, {
+                action: 'write',
+                path: selectedFile,
+                content: fileContent
+            });
+
+            if (result.status === 200) {
+                selectedPC.log(`${operation === 'move' ? 'Moved' : 'Copied'} file ${selectedFile} to ${targetPC.hostname}`);
+
+                // If move operation, delete from source
+                if (operation === 'move') {
+                    selectedPC.fs.deleteFile(selectedFile);
+                    setStatus({
+                        type: 'success',
+                        message: `Moved ${selectedFile} to ${targetPC.hostname}`
+                    });
+                } else {
+                    setStatus({
+                        type: 'success',
+                        message: `Copied ${selectedFile} to ${targetPC.hostname}`
+                    });
+                }
+
+                // Clear selection after successful transfer
+                setSelectedFile('');
+                setTargetPCId('');
+
+                // Force UI refresh
+                refresh();
+            } else {
+                setStatus({
+                    type: 'error',
+                    message: result.error || 'Transfer failed'
+                });
+            }
+        } catch (e) {
+            console.error(e);
+            setStatus({ type: 'error', message: 'Network error during transfer' });
+        } finally {
+            setIsTransferring(false);
+        }
     };
 
     return (
@@ -159,6 +199,16 @@ function FileTransferPanel() {
                 <ArrowLeftRight className="w-5 h-5 text-brand-primary" />
                 <h2 className="text-lg font-bold text-white">File Transfer</h2>
             </div>
+
+            {/* Status Message */}
+            {status.type && (
+                <div className={`mb-4 p-3 rounded border text-sm ${status.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                    status.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                        'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                    }`}>
+                    {status.message}
+                </div>
+            )}
 
             <div className="space-y-4">
                 {/* Source PC */}
@@ -177,7 +227,8 @@ function FileTransferPanel() {
                         <select
                             value={selectedFile}
                             onChange={(e) => setSelectedFile(e.target.value)}
-                            className="w-full bg-dark-bg text-dark-text px-2 py-1.5 text-sm rounded border border-dark-border focus:border-brand-primary focus:outline-none"
+                            disabled={isTransferring}
+                            className="w-full bg-dark-bg text-dark-text px-2 py-1.5 text-sm rounded border border-dark-border focus:border-brand-primary focus:outline-none disabled:opacity-50"
                         >
                             <option value="">-- Select a file --</option>
                             {files.map(file => (
@@ -191,11 +242,12 @@ function FileTransferPanel() {
                 <div className="bg-dark-surface/30 p-3 border border-dark-border rounded">
                     <h3 className="text-xs font-medium text-dark-muted mb-2">Operation</h3>
                     <div className="flex gap-1">
-                        {(['send', 'copy', 'move'] as const).map(op => (
+                        {(['copy', 'move'] as const).map(op => (
                             <button
                                 key={op}
                                 onClick={() => setOperation(op)}
-                                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${operation === op
+                                disabled={isTransferring}
+                                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-all disabled:opacity-50 ${operation === op
                                     ? 'bg-brand-primary text-white'
                                     : 'bg-dark-bg text-dark-muted hover:bg-white/5 border border-dark-border'
                                     }`}
@@ -204,6 +256,9 @@ function FileTransferPanel() {
                             </button>
                         ))}
                     </div>
+                    <p className="text-[10px] text-dark-muted mt-2">
+                        {operation === 'copy' ? 'Keep file on source PC' : 'Remove file from source PC after transfer'}
+                    </p>
                 </div>
 
                 {/* Target PC */}
@@ -212,7 +267,8 @@ function FileTransferPanel() {
                     <select
                         value={targetPCId}
                         onChange={(e) => setTargetPCId(e.target.value)}
-                        className="w-full bg-dark-bg text-dark-text px-2 py-1.5 text-sm rounded border border-dark-border focus:border-brand-primary focus:outline-none"
+                        disabled={isTransferring}
+                        className="w-full bg-dark-bg text-dark-text px-2 py-1.5 text-sm rounded border border-dark-border focus:border-brand-primary focus:outline-none disabled:opacity-50"
                     >
                         <option value="">-- Select target PC --</option>
                         {otherPCs.map(pc => (
@@ -226,11 +282,11 @@ function FileTransferPanel() {
                 {/* Transfer Button */}
                 <button
                     onClick={handleTransfer}
-                    disabled={!targetPCId || !selectedFile}
+                    disabled={!targetPCId || !selectedFile || isTransferring}
                     className="w-full px-4 py-2 bg-brand-primary hover:bg-brand-secondary disabled:bg-dark-surface disabled:text-dark-muted text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 rounded"
                 >
                     <ArrowLeftRight className="w-4 h-4" />
-                    Transfer File
+                    {isTransferring ? 'Transferring...' : `${operation === 'move' ? 'Move' : 'Copy'} File`}
                 </button>
             </div>
         </div>
