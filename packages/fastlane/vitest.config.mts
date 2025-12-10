@@ -5,8 +5,8 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    name: '@operone/automation',
+    include: ['**/*.test.ts'],
+    name: '@operone/fastlane',
     environment: 'node',
-    testTimeout: 20000, // Longer timeout for browser automation
   },
 });

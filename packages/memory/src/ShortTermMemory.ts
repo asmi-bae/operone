@@ -42,4 +42,20 @@ export class ShortTermMemory<T extends {}> {
     }
     return result;
   }
+
+  keys(): string[] {
+    return Array.from(this.cache.keys());
+  }
+
+  values(): T[] {
+    return Array.from(this.cache.values());
+  }
+
+  entries(): [string, T][] {
+    return Array.from(this.cache.entries());
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
 }

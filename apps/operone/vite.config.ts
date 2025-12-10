@@ -55,6 +55,9 @@ export default defineConfig({
                 '@operone/mcp',
                 '@operone/networking',
                 '@operone/utils',
+                '@operone/utils',
+                '@operone/ai',
+                '@llama-node/llama-cpp',
                 'ssh2'
               ],
               output: {

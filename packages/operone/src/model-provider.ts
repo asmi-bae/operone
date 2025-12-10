@@ -53,11 +53,28 @@ export class ModelProvider {
       case 'custom':
         return this.createCustomProvider(this.config as CustomConfig);
       
+      case 'local':
+        if (ModelProvider.localProviderFactory) {
+            return ModelProvider.localProviderFactory(this.config);
+        }
+        throw new Error('Local provider implementation not registered');
+      
       default: {
-        const exhaustiveCheck: never = this.config;
-        throw new Error(`Unsupported provider type: ${(exhaustiveCheck as any).type}`);
+        const exhaustiveCheck: never = this.config as never;
+        throw new Error(`Unsupported provider type: ${(this.config as any).type}`);
       }
     }
+  }
+
+  private static localProviderFactory: ((config: any) => any) | null = null;
+
+  /**
+   * Register a factory function for creating local providers
+   * This allows injecting the implementation (e.g. using node-llama-cpp) 
+   * without adding heavy dependencies to this core package
+   */
+  static registerLocalProvider(factory: (config: any) => any) {
+    ModelProvider.localProviderFactory = factory;
   }
 
   private createOpenAIProvider(config: OpenAIConfig) {

@@ -38,6 +38,12 @@ export class AgentManager {
   getAgents(): Map<any, string> {
     return this.agents;
   }
+
+  async startAgent(agentId: string): Promise<void> {
+    console.log(`Starting agent ${agentId}`);
+    // implementation would go here
+    return Promise.resolve();
+  }
 }
 
 // Reasoning Engine

@@ -5,7 +5,8 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    name: '@operone/shell',
+    include: ['**/*.test.ts'],
+    name: '@operone/shared',
     environment: 'node',
   },
 });

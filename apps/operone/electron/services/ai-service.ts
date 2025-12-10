@@ -1,3 +1,4 @@
+import { createLocal } from '@operone/ai'
 import { 
   AssistantAgent,
   OSAgent,
@@ -9,7 +10,8 @@ import {
   Planner,
   ReasoningEngine,
   EventBus,
-  AgentManager
+  AgentManager,
+  ModelProvider
 } from '@repo/operone'
 import { createThinkingPipeline, ThinkingPipeline } from '@operone/thinking'
 import { TaskOrchestrator } from '@operone/core'
@@ -38,6 +40,9 @@ class AIService {
   private taskRepository: SQLiteTaskRepository;
 
   constructor() {
+    // Register Local Provider
+    ModelProvider.registerLocalProvider(createLocal);
+
     // Initialize EventBus
     this.eventBus = EventBus.getInstance();
 

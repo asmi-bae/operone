@@ -16,7 +16,8 @@ describe('Multi-PC Network E2E Tests', () => {
     server = new PeerNetwork({
       peerId: 'server-1',
       peerName: 'Test Server',
-      port: SERVER_PORT
+      port: SERVER_PORT,
+      heartbeatInterval: 2000
     });
 
     await server.start();
@@ -86,22 +87,16 @@ describe('Multi-PC Network E2E Tests', () => {
   });
 
   it('should handle heartbeat monitoring', async () => {
-    const heartbeatReceived = new Promise((resolve) => {
-      server.once('message', (message: any) => {
-        if (message.type === 'heartbeat') {
-          resolve(true);
-        }
-      });
-    });
+    // Get initial heartbeat time
+    const peer = server.getConnectedPeers()[0];
+    const initialHeartbeat = peer.lastHeartbeat;
 
-    // Heartbeat should be sent automatically
-    const result = await Promise.race([
-      heartbeatReceived,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Heartbeat timeout')), 35000))
-    ]);
+    // Wait for at least one heartbeat interval (2s) plus buffer
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-    expect(result).toBe(true);
-  }, 40000);
+    const updatedPeer = server.getConnectedPeers()[0];
+    expect(updatedPeer.lastHeartbeat).toBeGreaterThan(initialHeartbeat);
+  }, 10000);
 
   it('should handle peer disconnection gracefully', async () => {
     const disconnectPromise = new Promise((resolve) => {

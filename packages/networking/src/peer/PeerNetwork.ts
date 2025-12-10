@@ -193,7 +193,36 @@ export class PeerNetwork extends EventEmitter {
       });
 
       ws.on('message', (data: any) => {
-        this.handleMessage(ws, data);
+        const message = this.parseMessage(data);
+        if (!message) return;
+
+        if (message.type === 'handshake') {
+          // Register peer
+          const peer: ConnectedPeer = {
+            id: message.from,
+            name: message.data.name,
+            ws,
+            authenticated: true,
+            lastHeartbeat: Date.now(),
+            capabilities: message.data.capabilities || [],
+            tools: message.data.tools || []
+          };
+          this.peers.set(message.from, peer);
+          
+          this.topology.addPeer({
+            peerId: peer.id,
+            peerName: peer.name,
+            directlyConnected: true,
+            latency: 0,
+            bandwidth: Infinity,
+            capabilities: peer.capabilities,
+            tools: peer.tools
+          });
+          
+          this.emit('peer:connected', peer);
+        } else {
+          this.handleMessage(ws, data);
+        }
       });
 
       ws.on('close', () => {

@@ -146,6 +146,7 @@ export class BrowserModelRegistry {
       { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', provider: 'openrouter', description: 'Via OpenRouter' },
     ],
     custom: [],
+    local: [],
   };
 
   static updateOllamaModels(models: ModelInfo[]): void {
@@ -384,10 +385,8 @@ export class BrowserAIService {
     if (!this.baseURL) return;
 
     const models = await this.ollamaDetector.getAvailableModels();
-    if (models.length > 0) {
-    if (models.length > 0) {
+    if (models.length > 0 && models[0]) {
       this.activeModel = models[0].name;
-    }
     }
   }
 

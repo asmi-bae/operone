@@ -91,7 +91,7 @@ describe('Network Integration (Topology & QoS)', () => {
 
   it('should track QoS metrics', async () => {
     // Send some messages from A to B
-    await peerA.executeRemoteTool('peer-b', 'test-tool', { foo: 'bar' }).catch(() => {});
+    peerA.executeRemoteTool('peer-b', 'test-tool', { foo: 'bar' }).catch(() => {});
     
     // Wait for metrics update
     await new Promise(resolve => setTimeout(resolve, 1000));

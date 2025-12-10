@@ -4,8 +4,8 @@ import baseConfig from '../../vitest.config.mts';
 export default defineConfig({
   ...baseConfig,
   test: {
-    ...baseConfig.test,
-    name: '@operone/context',
+    ...baseConfig.test, include: ['**/*.test.ts'],
+    name: '@operone/shell',
     environment: 'node',
   },
 });
