@@ -8,6 +8,8 @@ interface CommandHistoryEntry {
     timestamp: number;
 }
 
+import { RotateCcw, RotateCw } from 'lucide-react';
+
 export const RealShell: React.FC = () => {
     const { selectedPC, refresh } = useSimulation();
     const [history, setHistory] = useState<CommandHistoryEntry[]>([]);
@@ -16,7 +18,7 @@ export const RealShell: React.FC = () => {
     const [input, setInput] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
 
-    // We don't track undo/redo locally anymore as we delegate to PC (unless we add valid undo support eventually)
+    // We don't track undo/redo locally anymore as we delegate to PC
     // Keeping UI state for history though.
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,30 @@ export const RealShell: React.FC = () => {
         setIsExecuting(false);
     };
 
+    const handleUndo = async () => {
+        if (!selectedPC) return;
+        const msg = await selectedPC.executeCommand('undo');
+        refresh();
+        setHistory(prev => [...prev, {
+            command: 'undo',
+            output: msg,
+            exitCode: 0,
+            timestamp: Date.now()
+        }]);
+    };
+
+    const handleRedo = async () => {
+        if (!selectedPC) return;
+        const msg = await selectedPC.executeCommand('redo');
+        refresh();
+        setHistory(prev => [...prev, {
+            command: 'redo',
+            output: msg,
+            exitCode: 0,
+            timestamp: Date.now()
+        }]);
+    };
+
     // simplified handlers since we removed local undo stack for now
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         // History navigation
@@ -141,6 +167,22 @@ export const RealShell: React.FC = () => {
                     <span className="text-green-400">{selectedPC ? selectedPC.cwd : '-'}</span>
                 </div>
                 <div className="flex items-center gap-4 text-gray-400">
+                    <button
+                        onClick={handleUndo}
+                        disabled={!selectedPC}
+                        className="p-1 hover:bg-gray-800 rounded disabled:opacity-50 transition-colors"
+                        title="Undo"
+                    >
+                        <RotateCcw size={14} />
+                    </button>
+                    <button
+                        onClick={handleRedo}
+                        disabled={!selectedPC}
+                        className="p-1 hover:bg-gray-800 rounded disabled:opacity-50 transition-colors"
+                        title="Redo"
+                    >
+                        <RotateCw size={14} />
+                    </button>
                     <span>History: {commandHistory.length}</span>
                 </div>
             </div>

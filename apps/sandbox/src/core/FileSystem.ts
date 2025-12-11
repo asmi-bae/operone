@@ -24,10 +24,80 @@ export type FSNode = FileNode | DirectoryNode;
 
 export class FileSystem {
   private root: DirectoryNode;
+  private undoStack: DirectoryNode[] = [];
+  private redoStack: DirectoryNode[] = [];
+  private MAX_HISTORY = 50;
 
   constructor() {
     this.root = this.createDirectoryNode('');
   }
+
+  // --- Snapshotting & History ---
+
+  private cloneDirectoryUtil(node: DirectoryNode): DirectoryNode {
+    const newDir = this.createDirectoryNode(node.name);
+    newDir.metadata = { ...node.metadata };
+    
+    for (const [name, child] of node.children) {
+      if (child.type === 'file') {
+        const newFile: FileNode = {
+          type: 'file',
+          name: child.name,
+          content: child.content,
+          metadata: { ...child.metadata }
+        };
+        newDir.children.set(name, newFile);
+      } else {
+        newDir.children.set(name, this.cloneDirectoryUtil(child));
+      }
+    }
+    return newDir;
+  }
+
+  private saveState() {
+    // Deep clone the current root and push to undoStack
+    const snapshot = this.cloneDirectoryUtil(this.root);
+    this.undoStack.push(snapshot);
+    if (this.undoStack.length > this.MAX_HISTORY) {
+        this.undoStack.shift();
+    }
+    // Clear redo stack on new action
+    this.redoStack = [];
+  }
+
+  undo(): boolean {
+    if (this.undoStack.length === 0) return false;
+    
+    // Save current state to redo
+    const currentSnapshot = this.cloneDirectoryUtil(this.root);
+    this.redoStack.push(currentSnapshot);
+    
+    // Restore last state
+    const previousState = this.undoStack.pop();
+    if (previousState) {
+        this.root = previousState;
+        return true;
+    }
+    return false;
+  }
+
+  redo(): boolean {
+    if (this.redoStack.length === 0) return false;
+
+    // Save current state to undo
+    const currentSnapshot = this.cloneDirectoryUtil(this.root);
+    this.undoStack.push(currentSnapshot);
+
+    // Restore next state
+    const nextState = this.redoStack.pop();
+    if (nextState) {
+        this.root = nextState;
+        return true;
+    }
+    return false;
+  }
+
+  // --- Helpers ---
 
   private createDirectoryNode(name: string): DirectoryNode {
     return {
@@ -90,15 +160,16 @@ export class FileSystem {
   // File Operations
 
   writeFile(path: string, content: string): void {
+    // Check validity before saving state
     const result = this.getParentDir(path);
     if (!result) throw new Error(`Cannot write to ${path}: Invalid path`);
-    
     const { parent, name } = result;
     const existing = parent.children.get(name);
-
     if (existing && existing.type === 'directory') {
       throw new Error(`Cannot write to ${path}: Is a directory`);
     }
+
+    this.saveState();
 
     const file = this.createFileNode(name, content);
     parent.children.set(name, file);
@@ -124,6 +195,8 @@ export class FileSystem {
     
     if (!node || node.type !== 'file') return false;
     
+    this.saveState();
+    
     parent.children.delete(name);
     parent.metadata.modifiedAt = Date.now();
     return true;
@@ -133,10 +206,12 @@ export class FileSystem {
 
   mkdir(path: string): boolean {
     const result = this.getParentDir(path);
-    if (!result) return false; // Could happen if parent doesn't exist
+    if (!result) return false;
 
     const { parent, name } = result;
-    if (parent.children.has(name)) return false; // Already exists
+    if (parent.children.has(name)) return false; 
+
+    this.saveState();
 
     const dir = this.createDirectoryNode(name);
     parent.children.set(name, dir);
@@ -153,7 +228,9 @@ export class FileSystem {
 
     if (!node || node.type !== 'directory') return false;
     
-    if (!recursive && node.children.size > 0) return false; // Must be empty if not recursive
+    if (!recursive && node.children.size > 0) return false;
+
+    this.saveState();
 
     parent.children.delete(name);
     parent.metadata.modifiedAt = Date.now();
@@ -176,27 +253,24 @@ export class FileSystem {
     const srcParentInfo = this.getParentDir(src);
     if (!srcParentInfo) return false;
 
-    // Check dest
-    // If dest is directory, move into it
     const destNode = this.resolveNode(dest);
     let targetParent: DirectoryNode;
     let targetName: string;
 
     if (destNode && destNode.type === 'directory') {
         targetParent = destNode;
-        targetName = srcNode.name; // Keep same name
+        targetName = srcNode.name;
     } else {
-        // Assume dest is the full new path
         const destParentInfo = this.getParentDir(dest);
-        if (!destParentInfo) return false; // Parent of dest must exist
+        if (!destParentInfo) return false;
         targetParent = destParentInfo.parent;
         targetName = destParentInfo.name;
     }
     
-    // Check if target already exists
     if (targetParent.children.has(targetName)) return false;
 
-    // Perform move
+    this.saveState();
+
     srcParentInfo.parent.children.delete(srcParentInfo.name);
     srcNode.name = targetName;
     targetParent.children.set(targetName, srcNode);
@@ -208,24 +282,42 @@ export class FileSystem {
   }
 
   copy(src: string, dest: string): boolean {
+      // dry run check
+      if (!this.exists(src)) return false;
+      
+      this.saveState();
+      
+      return this.copyRecursive(src, dest);
+  }
+
+  private copyRecursive(src: string, dest: string): boolean {
     const srcNode = this.resolveNode(src);
     if (!srcNode) return false;
 
     if (srcNode.type === 'file') {
-        this.writeFile(dest, srcNode.content);
+        // Internal write, direct manipulation to avoid creating extra history
+        const result = this.getParentDir(dest);
+        if (!result) return false; 
+        const { parent, name } = result;
+        const file = this.createFileNode(name, srcNode.content);
+        parent.children.set(name, file);
         return true;
     } else {
-        // Recursive copy for directories
-        // First create dest dir
+        // Directory copy
         if (!this.exists(dest)) {
-            if (!this.mkdir(dest)) return false; /* Failed to create dest dir */
+             // Create directory manually to avoid triggering saveState
+             const result = this.getParentDir(dest);
+             if (!result) return false; 
+             const { parent, name } = result;
+             const dir = this.createDirectoryNode(name);
+             parent.children.set(name, dir);
         }
-        
+
         let success = true;
         for (const name of srcNode.children.keys()) {
              const childDest = dest === '/' ? `/${name}` : `${dest}/${name}`;
              const childSrc = src === '/' ? `/${name}` : `${src}/${name}`;
-             if (!this.copy(childSrc, childDest)) success = false;
+             if (!this.copyRecursive(childSrc, childDest)) success = false;
         }
         return success;
     }
@@ -237,10 +329,8 @@ export class FileSystem {
 
   resolvePath(cwd: string, path: string): string {
     if (path.startsWith('/')) {
-        // Absolute path, just normalize
         return this.normalizePath(path);
     }
-    // Relative path
     const combined = cwd === '/' ? `/${path}` : `${cwd}/${path}`;
     return this.normalizePath(combined);
   }

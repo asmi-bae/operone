@@ -165,14 +165,53 @@ export function MCPPage() {
                             </AnimatePresence>
 
                             {/* Arguments */}
+                            {/* Arguments */}
                             <div>
-                                <label className="text-sm font-medium text-dark-muted mb-2 block">Arguments (JSON)</label>
-                                <textarea
-                                    value={toolArgs}
-                                    onChange={(e) => setToolArgs(e.target.value)}
-                                    className="w-full h-32 bg-dark-bg text-dark-text font-mono text-sm p-4 rounded-lg border border-dark-border focus:border-brand-primary focus:ring-1 focus:ring-brand-primary focus:outline-none resize-none transition-colors"
-                                    placeholder='{"path": "/home/readme.txt"}'
-                                />
+                                <label className="text-sm font-medium text-dark-muted mb-2 block">Arguments</label>
+                                {tools.find(t => t.name === selectedTool)?.schema?.properties?.path ? (
+                                    <div className="space-y-2">
+                                        <div className="relative">
+                                            <select
+                                                value={(() => {
+                                                    try {
+                                                        return JSON.parse(toolArgs).path || '';
+                                                    } catch {
+                                                        return '';
+                                                    }
+                                                })()}
+                                                onChange={(e) => {
+                                                    const newPath = e.target.value;
+                                                    setToolArgs(JSON.stringify({ path: newPath }, null, 2));
+                                                }}
+                                                className="w-full bg-dark-bg text-dark-text px-4 py-2.5 rounded-lg border border-dark-border focus:border-brand-primary focus:ring-1 focus:ring-brand-primary focus:outline-none appearance-none transition-colors"
+                                            >
+                                                <option value="">-- Select a file --</option>
+                                                {network.getAllPCs()
+                                                    .find(pc => pc.mcpServer === selectedServer)
+                                                    ?.fs.ls('/')
+                                                    .map(file => (
+                                                        <option key={file} value={file}>
+                                                            {file}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-dark-muted">
+                                                <Search className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-dark-muted">Select a file from the current system to use as an argument.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <label className="text-xs text-dark-muted mb-1 block">JSON Input</label>
+                                        <textarea
+                                            value={toolArgs}
+                                            onChange={(e) => setToolArgs(e.target.value)}
+                                            className="w-full h-32 bg-dark-bg text-dark-text font-mono text-sm p-4 rounded-lg border border-dark-border focus:border-brand-primary focus:ring-1 focus:ring-brand-primary focus:outline-none resize-none transition-colors"
+                                            placeholder='{"path": "/home/readme.txt"}'
+                                        />
+                                    </>
+                                )}
                             </div>
 
                             {/* Execute Button */}

@@ -178,6 +178,12 @@ export class PC {
         case 'scp':
           return this.cmdScp(args);
         
+        // Undo/Redo
+        case 'undo':
+          return this.cmdUndo();
+        case 'redo':
+          return this.cmdRedo();
+
         // Help
         case 'help':
           return this.cmdHelp();
@@ -191,6 +197,26 @@ export class PC {
     } catch (error: any) {
       return `Error: ${error.message}`;
     }
+  }
+
+  undo(): boolean {
+    const success = this.fs.undo();
+    if (success) this.log('Undo performed');
+    return success;
+  }
+
+  redo(): boolean {
+    const success = this.fs.redo();
+    if (success) this.log('Redo performed');
+    return success;
+  }
+
+  private cmdUndo(): string {
+    return this.undo() ? 'Undo successful' : 'Nothing to undo';
+  }
+
+  private cmdRedo(): string {
+    return this.redo() ? 'Redo successful' : 'Nothing to redo';
   }
 
   private cmdLs(args: string[]): string {
@@ -461,6 +487,8 @@ File System:
   mkdir <dir>        - Create directory
   cp <src> <dest>    - Copy file
   mv <src> <dest>    - Move/rename file
+  undo               - Undo last file system change
+  redo               - Redo last undone change
   pwd                - Print working directory
 
 Network:
