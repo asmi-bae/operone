@@ -14,6 +14,26 @@ export type { ResourceLimits, ResourceUsage, ResourceAllocation } from './core/R
 export { PerformanceMonitor } from './core/PerformanceMonitor';
 export type { PerformanceMetric, PerformanceProfile, PerformanceReport } from './core/PerformanceMonitor';
 
+// Orchestration exports
+export { Orchestrator } from './core/Orchestrator';
+export { TaskPlanner } from './core/TaskPlanner';
+export { TaskExecutor } from './core/TaskExecutor';
+export { StateManager } from './core/StateManager';
+export { PriorityQueue } from './core/PriorityQueue';
+export type {
+  Task,
+  TaskGraph,
+  TaskExecution,
+  TaskResult,
+  Checkpoint,
+  ExecutionOptions,
+  ExecutionResult,
+  ExecutionStatus,
+  OrchestratorConfig,
+  TaskProgress,
+  RetryPolicy,
+} from './core/types';
+
 // Agent exports
 export { AssistantAgent } from './agents/AssistantAgent';
 export { OSAgent } from './agents/OSAgent';

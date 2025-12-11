@@ -2,6 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createMistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
 
 import type { 
   ProviderConfig, 
@@ -101,6 +102,9 @@ export class ModelProvider {
   // }
 
   private createOpenRouterProvider(config: OpenRouterConfig) {
+    if (!config.apiKey) {
+      throw new Error('OpenRouter API Key is missing. Please add it in Settings.');
+    }
     // OpenRouter uses OpenAI-compatible API
     // Must use /chat/completions endpoint explicitly
     return createOpenAI({
@@ -193,7 +197,6 @@ export class ModelProvider {
     try {
       const model = this.getModel();
       // Try a simple generation to test the connection
-      const { generateText } = await import('ai');
       await generateText({
         model,
         prompt: 'Hello',
@@ -375,7 +378,7 @@ export function createDefaultConfig(): ProviderConfig {
   return {
     type: 'openrouter',
     model: 'google/gemini-2.0-flash-exp:free',
-    apiKey: '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',
+    apiKey: process.env.OPENROUTER_API_KEY || '', // Use env var or empty
     baseURL: 'https://openrouter.ai/api/v1',
   };
 }

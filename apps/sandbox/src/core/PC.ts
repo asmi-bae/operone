@@ -11,6 +11,7 @@ export class PC {
   status: 'online' | 'offline' | 'booting';
   logs: string[] = [];
   network: Network;
+  cwd: string = '/';
 
   services: Map<string, { port: number, type: string, status: 'running' | 'stopped' }> = new Map();
 
@@ -134,8 +135,14 @@ export class PC {
           return this.cmdRm(args);
         case 'mkdir':
           return this.cmdMkdir(args);
+        case 'cp':
+          return this.cmdCp(args);
+        case 'mv':
+          return this.cmdMv(args);
         case 'pwd':
-          return '/home';
+          return this.cwd;
+        case 'cd':
+          return this.cmdCd(args);
 
         // Network Commands
         case 'ping':
@@ -187,33 +194,71 @@ export class PC {
   }
 
   private cmdLs(args: string[]): string {
-    const path = args[0] || '/';
+    const rawPath = args[0] || '';
+    const path = this.fs.resolvePath(this.cwd, rawPath);
     const files = this.fs.ls(path);
-    return files.length > 0 ? files.join('\n') : 'No files found';
+    return files.length > 0 ? files.join('\n') : ''; // Empty string if no files, or 'No files found' if you prefer, but standard ls is silent
   }
 
   private cmdCat(args: string[]): string {
     if (args.length === 0) return 'Usage: cat <filename>';
-    const content = this.fs.readFile(args[0]);
+    const path = this.fs.resolvePath(this.cwd, args[0]);
+    const content = this.fs.readFile(path);
     return content !== null ? content : `cat: ${args[0]}: No such file`;
   }
 
   private cmdTouch(args: string[]): string {
     if (args.length === 0) return 'Usage: touch <filename>';
-    this.fs.writeFile(args[0], '');
+    const path = this.fs.resolvePath(this.cwd, args[0]);
+    this.fs.writeFile(path, '');
     return '';
   }
 
   private cmdRm(args: string[]): string {
     if (args.length === 0) return 'Usage: rm <filename>';
-    const deleted = this.fs.deleteFile(args[0]);
+    const path = this.fs.resolvePath(this.cwd, args[0]);
+    const deleted = this.fs.deleteFile(path);
     return deleted ? '' : `rm: cannot remove '${args[0]}': No such file`;
   }
 
   private cmdMkdir(args: string[]): string {
     if (args.length === 0) return 'Usage: mkdir <dirname>';
-    // Simplified - just create a marker file
-    this.fs.writeFile(`${args[0]}/.dir`, '');
+    const path = this.fs.resolvePath(this.cwd, args[0]);
+    const success = this.fs.mkdir(path);
+    return success ? '' : `mkdir: cannot create directory '${args[0]}': File exists or parent not found`;
+  }
+
+  private cmdCp(args: string[]): string {
+    if (args.length < 2) return 'Usage: cp <source> <dest>';
+    const src = this.fs.resolvePath(this.cwd, args[0]);
+    const dest = this.fs.resolvePath(this.cwd, args[1]);
+    const success = this.fs.copy(src, dest);
+    return success ? '' : `cp: cannot copy '${args[0]}' to '${args[1]}'`;
+  }
+
+  private cmdMv(args: string[]): string {
+    if (args.length < 2) return 'Usage: mv <source> <dest>';
+    const src = this.fs.resolvePath(this.cwd, args[0]);
+    const dest = this.fs.resolvePath(this.cwd, args[1]);
+    const success = this.fs.move(src, dest);
+    return success ? '' : `mv: cannot move '${args[0]}' to '${args[1]}'`;
+  }
+
+  private cmdCd(args: string[]): string {
+    const rawPath = args[0] || '/';
+    const path = this.fs.resolvePath(this.cwd, rawPath);
+    
+    // Check if path exists and is a directory
+    if (!this.fs.exists(path)) {
+        return `cd: ${args[0]}: No such file or directory`;
+    }
+    // Better to use stat to check if it's a directory
+    const node = this.fs.stat(path);
+    if (!node || node.type !== 'directory') {
+         return `cd: ${args[0]}: Not a directory`;
+    }
+
+    this.cwd = path;
     return '';
   }
 
@@ -414,6 +459,8 @@ File System:
   touch <file>       - Create empty file
   rm <file>          - Remove file
   mkdir <dir>        - Create directory
+  cp <src> <dest>    - Copy file
+  mv <src> <dest>    - Move/rename file
   pwd                - Print working directory
 
 Network:

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, type KeyboardEvent } from 'react';
+import { useSimulation } from '../context/SimulationContext';
 
 interface CommandHistoryEntry {
     command: string;
@@ -7,32 +8,16 @@ interface CommandHistoryEntry {
     timestamp: number;
 }
 
-interface FileSystemState {
-    files: Map<string, string>;
-    cwd: string;
-}
-
-interface UndoEntry {
-    command: string;
-    previousState: FileSystemState;
-    description: string;
-}
-
 export const RealShell: React.FC = () => {
+    const { selectedPC, refresh } = useSimulation();
     const [history, setHistory] = useState<CommandHistoryEntry[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [input, setInput] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
-    const [cwd, setCwd] = useState('~');
-    const [fileSystem, setFileSystem] = useState<Map<string, string>>(
-        new Map([
-            ['/home/readme.txt', 'Welcome to the shell!'],
-            ['/home/test.txt', 'This is a test file.'],
-        ])
-    );
-    const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
-    const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
+
+    // We don't track undo/redo locally anymore as we delegate to PC (unless we add valid undo support eventually)
+    // Keeping UI state for history though.
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -49,17 +34,7 @@ export const RealShell: React.FC = () => {
         inputRef.current?.focus();
     }, []);
 
-    const saveState = (): FileSystemState => ({
-        files: new Map(fileSystem),
-        cwd
-    });
-
-    const restoreState = (state: FileSystemState) => {
-        setFileSystem(new Map(state.files));
-        setCwd(state.cwd);
-    };
-
-    const executeCommand = (cmd: string) => {
+    const executeCommand = async (cmd: string) => {
         if (!cmd.trim()) return;
 
         setIsExecuting(true);
@@ -69,136 +44,24 @@ export const RealShell: React.FC = () => {
         setCommandHistory(prev => [...prev, cmd]);
         setHistoryIndex(-1);
 
-        const parts = cmd.trim().split(/\s+/);
-        const baseCmd = parts[0];
-        const args = parts.slice(1);
-
         let output = '';
         let exitCode = 0;
-        let isReversible = false;
-        const previousState = saveState();
 
         try {
-            switch (baseCmd) {
-                case 'clear':
-                    setHistory([]);
-                    setIsExecuting(false);
-                    return;
-
-                case 'history':
-                    output = commandHistory
-                        .map((c, i) => `${i + 1}  ${c}`)
-                        .join('\n');
-                    break;
-
-                case 'help':
-                    output = `Available commands:
-  
-File System:
-  ls [path]       - List files
-  cat <file>      - Display file contents
-  touch <file>    - Create empty file
-  rm <file>       - Remove file
-  echo <text>     - Print text
-  pwd             - Print working directory
-
-System:
-  whoami          - Show current user
-  date            - Show current date
-  clear           - Clear screen
-  history         - Show command history
-  help            - Show this help
-
-Undo/Redo:
-  Ctrl+Z          - Undo last command
-  Ctrl+Shift+Z    - Redo last undone command
-
-Navigation:
-  ↑/↓             - Navigate command history`;
-                    break;
-
-                case 'ls':
-                    const path = args[0] || '/';
-                    const files = Array.from(fileSystem.keys())
-                        .filter(f => f.startsWith(path))
-                        .map(f => f.replace(path, '').split('/').filter(Boolean)[0])
-                        .filter((v, i, a) => a.indexOf(v) === i);
-                    output = files.length > 0 ? files.join('\n') : 'No files found';
-                    break;
-
-                case 'cat':
-                    if (args.length === 0) {
-                        output = 'Usage: cat <filename>';
-                        exitCode = 1;
-                    } else {
-                        const content = fileSystem.get(args[0]);
-                        if (content !== undefined) {
-                            output = content;
-                        } else {
-                            output = `cat: ${args[0]}: No such file`;
-                            exitCode = 1;
-                        }
-                    }
-                    break;
-
-                case 'touch':
-                    if (args.length === 0) {
-                        output = 'Usage: touch <filename>';
-                        exitCode = 1;
-                    } else {
-                        const newFS = new Map(fileSystem);
-                        newFS.set(args[0], '');
-                        setFileSystem(newFS);
-                        isReversible = true;
-                    }
-                    break;
-
-                case 'rm':
-                    if (args.length === 0) {
-                        output = 'Usage: rm <filename>';
-                        exitCode = 1;
-                    } else {
-                        if (fileSystem.has(args[0])) {
-                            const newFS = new Map(fileSystem);
-                            newFS.delete(args[0]);
-                            setFileSystem(newFS);
-                            isReversible = true;
-                        } else {
-                            output = `rm: cannot remove '${args[0]}': No such file`;
-                            exitCode = 1;
-                        }
-                    }
-                    break;
-
-                case 'echo':
-                    output = args.join(' ');
-                    break;
-
-                case 'pwd':
-                    output = cwd;
-                    break;
-
-                case 'whoami':
-                    output = 'user';
-                    break;
-
-                case 'date':
-                    output = new Date().toString();
-                    break;
-
-                default:
-                    output = `Command not found: ${baseCmd}\nType 'help' for available commands`;
-                    exitCode = 1;
+            if (cmd === 'clear') {
+                setHistory([]);
+                setIsExecuting(false);
+                return;
             }
 
-            // Add to undo stack if reversible
-            if (isReversible) {
-                setUndoStack(prev => [...prev, {
-                    command: cmd,
-                    previousState,
-                    description: `Undo: ${cmd}`
-                }]);
-                setRedoStack([]); // Clear redo stack on new action
+            if (!selectedPC) {
+                output = 'Error: No PC selected. Please select a PC from the Network Map.';
+                exitCode = 1;
+            } else {
+                // Delegate to PC
+                output = await selectedPC.executeCommand(cmd);
+                // Refresh generic UI state (PC simulation state might have changed)
+                refresh();
             }
 
             setHistory(prev => [...prev, {
@@ -220,52 +83,7 @@ Navigation:
         setIsExecuting(false);
     };
 
-    const handleUndo = () => {
-        if (undoStack.length === 0) {
-            setHistory(prev => [...prev, {
-                command: 'undo',
-                output: 'Nothing to undo',
-                exitCode: 1,
-                timestamp: Date.now()
-            }]);
-            return;
-        }
-
-        const lastAction = undoStack[undoStack.length - 1];
-        setUndoStack(prev => prev.slice(0, -1));
-
-        // Restore previous state
-        restoreState(lastAction.previousState);
-
-        // Add to redo stack
-        setRedoStack(prev => [...prev, lastAction]);
-
-        setHistory(prev => [...prev, {
-            command: 'undo',
-            output: lastAction.description,
-            exitCode: 0,
-            timestamp: Date.now()
-        }]);
-    };
-
-    const handleRedo = () => {
-        if (redoStack.length === 0) {
-            setHistory(prev => [...prev, {
-                command: 'redo',
-                output: 'Nothing to redo',
-                exitCode: 1,
-                timestamp: Date.now()
-            }]);
-            return;
-        }
-
-        const lastUndo = redoStack[redoStack.length - 1];
-        setRedoStack(prev => prev.slice(0, -1));
-
-        // Re-execute original command
-        executeCommand(lastUndo.command);
-    };
-
+    // simplified handlers since we removed local undo stack for now
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         // History navigation
         if (e.key === 'ArrowUp') {
@@ -290,14 +108,6 @@ Navigation:
                 setHistoryIndex(newIndex);
                 setInput(commandHistory[newIndex]);
             }
-        }
-        // Undo/Redo
-        else if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
-            e.preventDefault();
-            handleUndo();
-        } else if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
-            e.preventDefault();
-            handleRedo();
         }
         // Clear screen
         else if (e.ctrlKey && e.key === 'l') {
@@ -325,13 +135,13 @@ Navigation:
             {/* Status Bar */}
             <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800 text-xs">
                 <div className="flex items-center gap-4">
+                    <span className="text-gray-400">Host:</span>
+                    <span className="text-blue-400">{selectedPC ? selectedPC.hostname : 'No Connection'}</span>
                     <span className="text-gray-400">CWD:</span>
-                    <span className="text-green-400">{cwd}</span>
+                    <span className="text-green-400">{selectedPC ? selectedPC.cwd : '-'}</span>
                 </div>
                 <div className="flex items-center gap-4 text-gray-400">
                     <span>History: {commandHistory.length}</span>
-                    <span>Undo: {undoStack.length}</span>
-                    <span>Redo: {redoStack.length}</span>
                 </div>
             </div>
 
@@ -340,9 +150,9 @@ Navigation:
                 {history.slice(-50).map((entry, i) => (
                     <div key={i} className="space-y-1">
                         <div className="text-white">
-                            <span className="text-green-600">user@sandbox</span>
+                            <span className="text-green-600">user@{selectedPC?.hostname || 'sandbox'}</span>
                             <span className="text-gray-500">:</span>
-                            <span className="text-blue-400">~</span>
+                            <span className="text-blue-400">{selectedPC ? selectedPC.cwd : '~'}</span>
                             <span className="text-gray-500">$ </span>
                             <span>{entry.command}</span>
                         </div>
@@ -357,9 +167,9 @@ Navigation:
 
             {/* Input */}
             <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-gray-800 bg-gray-900">
-                <span className="text-green-600">user@sandbox</span>
+                <span className="text-green-600">user@{selectedPC?.hostname || 'sandbox'}</span>
                 <span className="text-gray-500">:</span>
-                <span className="text-blue-400">~</span>
+                <span className="text-blue-400">{selectedPC ? selectedPC.cwd : '~'}</span>
                 <span className="text-gray-500">$</span>
                 <input
                     ref={inputRef}
@@ -367,9 +177,9 @@ Navigation:
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    disabled={isExecuting}
+                    disabled={isExecuting || !selectedPC}
                     className="flex-1 bg-transparent outline-none text-gray-100 placeholder-gray-700 disabled:opacity-50"
-                    placeholder="Type a command... (↑/↓ for history, Ctrl+Z to undo)"
+                    placeholder={selectedPC ? "Type a command... (↑/↓ for history, Ctrl+L to clear)" : "Select a PC to start terminal session"}
                     autoFocus
                 />
                 {isExecuting && (
@@ -380,8 +190,6 @@ Navigation:
             {/* Help Text */}
             <div className="px-4 py-2 bg-gray-950 border-t border-gray-800 text-xs text-gray-500">
                 <span className="mr-4">↑/↓: History</span>
-                <span className="mr-4">Ctrl+Z: Undo</span>
-                <span className="mr-4">Ctrl+Shift+Z: Redo</span>
                 <span className="mr-4">Ctrl+L: Clear</span>
                 <span>Ctrl+C: Cancel</span>
             </div>

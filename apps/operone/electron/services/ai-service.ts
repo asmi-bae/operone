@@ -73,12 +73,33 @@ class AIService {
 
     if (Object.keys(savedProviders).length === 0) {
       const defaultConfig = createDefaultConfig();
+      // Inject env var if available
+      if (!defaultConfig.apiKey && process.env.OPENROUTER_API_KEY) {
+        defaultConfig.apiKey = process.env.OPENROUTER_API_KEY;
+      }
       this.providerManager.addProvider('default', defaultConfig);
       this.providerManager.setActiveProvider('default'); // Set as active
       store.set('ai.activeProviderId', 'default'); // Save to store
       store.set('ai.providers', { default: defaultConfig }); // Save provider config
     } else {
       Object.entries(savedProviders).forEach(([id, config]) => {
+        // Migration: Clear invalid legacy hardcoded keys if present
+        const invalidKeys = [
+            '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',
+            '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'
+        ];
+        if (invalidKeys.includes(config.apiKey)) {
+            console.log('Detected invalid legacy API key, clearing it.');
+            config.apiKey = '';
+            store.set(`ai.providers.${id}`, config);
+        }
+
+        // Fallback to env var if key is empty and it's an OpenRouter provider
+        if (!config.apiKey && config.type === 'openrouter' && process.env.OPENROUTER_API_KEY) {
+            console.log('Using OPENROUTER_API_KEY from environment');
+            config.apiKey = process.env.OPENROUTER_API_KEY;
+        }
+
         this.providerManager.addProvider(id, config);
       });
     }
@@ -88,8 +109,10 @@ class AIService {
     } else if (Object.keys(savedProviders).length > 0) {
       // If no active provider set but we have providers, activate the first one
       const firstProviderId = Object.keys(savedProviders)[0];
-      this.providerManager.setActiveProvider(firstProviderId);
-      store.set('ai.activeProviderId', firstProviderId);
+      if (firstProviderId) {
+        this.providerManager.setActiveProvider(firstProviderId);
+        store.set('ai.activeProviderId', firstProviderId);
+      }
     }
 
     // Initialize Memory Manager
